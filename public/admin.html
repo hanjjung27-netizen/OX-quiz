@@ -189,8 +189,9 @@
         <div class="timer-big off" id="timer-big">--</div>
         <div class="timer-track"><div class="timer-fill" id="timer-fill" style="width:0%;background:var(--mint)"></div></div>
       </div>
-      <div style="margin-top:12px;">
-        <button class="btn btn-full btn-start-quiz" id="start-btn" onclick="startQuiz()">▶ 퀴즈 시작</button>
+      <div style="margin-top:12px;display:flex;gap:8px;">
+        <button class="btn btn-full btn-start-quiz" id="start-btn" onclick="startQuiz()" style="flex:2;">▶ 퀴즈 시작</button>
+        <button class="btn btn-danger" id="stop-btn" onclick="stopQuiz()" style="flex:1;display:none;">⏹ 중단</button>
       </div>
     </div>
 
@@ -315,18 +316,31 @@ function renderQList() {
 function renderReviewPanel(history, revealedAnswers) {
   const el = document.getElementById('review-q-list');
   if (!history||!history.length) { el.innerHTML='<div style="color:var(--sub);font-size:13px;text-align:center;padding:14px 0">퀴즈 완료 후 여기서 정답을 공개하세요</div>'; return; }
-  el.innerHTML = history.map((h,i) => {
+
+  const allRevealed = history.every((h) => revealedAnswers && revealedAnswers[h.index]);
+
+  el.innerHTML = `
+    <button class="btn btn-full" style="margin-bottom:10px;padding:13px;font-size:14px;font-weight:800;background:${allRevealed?'var(--mint-light)':'var(--mint)'};color:${allRevealed?'var(--mint-dark)':'#fff'};border-radius:10px;${allRevealed?'cursor:default;':''}" onclick="revealAllAns()" ${allRevealed?'disabled':''}>
+      ${allRevealed ? '✓ 전체 정답 공개 완료' : '📢 전체 정답 한번에 공개'}
+    </button>
+  ` + history.map((h,i) => {
     const revealed = revealedAnswers && revealedAnswers[h.index];
     return `<div style="background:var(--bg);border:1.5px solid ${revealed?'var(--mint)':'var(--border)'};border-radius:8px;padding:10px 12px;margin-bottom:6px;">
-      <div style="font-size:13px;margin-bottom:8px;font-weight:600;display:flex;align-items:center;gap:8px;color:var(--navy);">
+      <div style="font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px;color:var(--navy);">
         ${i+1}. ${h.question}
         ${revealed ? `<span style="font-size:11px;background:var(--mint-light);color:var(--mint-dark);padding:2px 8px;border-radius:6px;font-weight:700;border:1px solid var(--mint);">공개됨 ${h.answer==='O'?'○':'✕'}</span>` : ''}
       </div>
-      <button class="rev-btn ${revealed?'done':h.answer==='O'?'o':'x'}" onclick="revealAns(${h.index})" ${revealed?'disabled':''}>
-        ${revealed ? '✓ 정답 공개 완료' : '📢 정답 공개 (스크린 + 참여자 동시)'}
-      </button>
     </div>`;
   }).join('');
+}
+
+function stopQuiz() {
+  if (!confirm('퀴즈를 중단할까요? 지금까지의 점수는 유지됩니다.')) return;
+  socket.emit('stop_quiz');
+}
+function revealAllAns() {
+  if (!confirm('모든 문제의 정답을 한번에 공개할까요?')) return;
+  roundHistory.forEach(h => socket.emit('reveal_answer', { index: h.index }));
 }
 
 function startQuiz() {
@@ -375,9 +389,17 @@ socket.on('admin_update', (data) => {
   if (data.timerDuration) { timerTotal = data.timerDuration; document.getElementById('timer-input').value = data.timerDuration; }
 
   const sb = document.getElementById('start-btn');
-  if (data.quizRunning) { sb.textContent='진행중...'; sb.disabled=true; }
-  else if (data.phase==='finished') { sb.textContent='▶ 다시 시작'; sb.disabled=false; }
-  else { sb.textContent='▶ 퀴즈 시작'; sb.disabled=false; }
+  const stopBtn = document.getElementById('stop-btn');
+  if (data.quizRunning) {
+    sb.textContent='진행중...'; sb.disabled=true;
+    stopBtn.style.display='block';
+  } else if (data.phase==='finished') {
+    sb.textContent='▶ 다시 시작'; sb.disabled=false;
+    stopBtn.style.display='none';
+  } else {
+    sb.textContent='▶ 퀴즈 시작'; sb.disabled=false;
+    stopBtn.style.display='none';
+  }
 
   document.querySelectorAll('[id^="qi-"]').forEach((el,i) => {
     el.classList.toggle('current', i===data.currentIndex && data.quizRunning);
@@ -399,7 +421,6 @@ socket.on('admin_update', (data) => {
 
   roundHistory = data.roundHistory||[];
   renderReviewPanel(roundHistory, data.revealedAnswers||{});
-
   const lb = document.getElementById('leaderboard');
   const rc=['gold','silver','bronze'], re=['🥇','🥈','🥉'];
   lb.innerHTML = data.leaderboard?.length

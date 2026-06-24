@@ -198,6 +198,18 @@ io.on('connection', (socket) => {
     startQuestion(0);
   });
 
+  // 퀴즈 강제 중단
+  socket.on('stop_quiz', () => {
+    clearTimer();
+    state.quizRunning = false;
+    state.phase = 'finished';
+    // 현재까지 점수 저장
+    Object.values(state.participants).forEach(p => { state.nameToScore[p.name] = p.score; });
+    io.to('participants').emit('quiz_finished', { leaderboard: getLeaderboard() });
+    io.to('screen').emit('screen_update', screenState());
+    io.to('admin').emit('admin_update', adminState());
+  });
+
   socket.on('submit_answer', ({ answer }) => {
     if (state.phase !== 'active') return;
     if (!['O', 'X'].includes(answer)) return;
