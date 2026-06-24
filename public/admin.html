@@ -252,12 +252,16 @@ function uploadExcel(input) {
     try {
       const wb = XLSX.read(e.target.result, { type: 'array' });
       const ws = wb.Sheets[wb.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
+      const rows = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false });
       let added = 0;
       rows.forEach(row => {
         const text = (row[0] || '').toString().trim();
-        const ans = (row[1] || '').toString().trim().toUpperCase();
-        if (text && (ans === 'O' || ans === 'X')) {
+        // O/X 다양한 형태 처리 (대소문자, 특수문자 포함)
+        const rawAns = (row[1] || '').toString().trim();
+        let ans = '';
+        if (/^[oO○]/u.test(rawAns)) ans = 'O';
+        else if (/^[xX✕✗×]/u.test(rawAns)) ans = 'X';
+        if (text && ans) {
           localQ.push({ text, answer: ans });
           added++;
         }
@@ -270,7 +274,7 @@ function uploadExcel(input) {
         alert('등록된 문제가 없어요.\nA열: 문제, B열: O 또는 X 형식인지 확인해주세요.');
       }
     } catch(err) {
-      alert('파일을 읽는 중 오류가 발생했어요.');
+      alert('파일을 읽는 중 오류가 발생했어요: ' + err.message);
     }
     input.value = '';
   };
