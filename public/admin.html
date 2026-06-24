@@ -9,6 +9,7 @@
   * { margin:0; padding:0; box-sizing:border-box; }
   :root { --o:#FF4B4B; --x:#3B82F6; --bg:#0D0D10; --panel:#16161E; --border:#2A2A38; --text:#EEEEF5; --sub:#7777AA; --green:#22C55E; --yellow:#F59E0B; }
   body { background:var(--bg); color:var(--text); font-family:'Apple SD Gothic Neo','Noto Sans KR',sans-serif; min-height:100vh; }
+
   header { background:var(--panel); border-bottom:1px solid var(--border); padding:12px 24px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:100; }
   .logo { font-size:22px; font-weight:900; }
   .logo span:first-child{color:var(--o);} .logo span:last-child{color:var(--x);}
@@ -23,11 +24,14 @@
   .dot{width:7px;height:7px;border-radius:50%;background:currentColor;}
   .phase-pill.active .dot{animation:blink 1s infinite;}
   @keyframes blink{50%{opacity:.2;}}
+
   .layout { display:grid; grid-template-columns:340px 1fr; height:calc(100vh - 53px); }
   .sidebar { border-right:1px solid var(--border); overflow-y:auto; padding:14px; display:flex; flex-direction:column; gap:12px; }
   .main { overflow-y:auto; padding:14px 18px; display:flex; flex-direction:column; gap:12px; }
+
   .panel { background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:14px; }
   .ptitle { font-size:11px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--sub); margin-bottom:10px; }
+
   .q-list { display:flex; flex-direction:column; gap:5px; max-height:280px; overflow-y:auto; }
   .q-item { background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:9px 11px; display:flex; align-items:flex-start; gap:7px; }
   .q-item.current { border-color:var(--green); background:#0A1A0A; }
@@ -36,12 +40,19 @@
   .q-txt { flex:1; font-size:13px; line-height:1.4; }
   .q-ans { font-size:11px; font-weight:900; padding:2px 7px; border-radius:5px; flex-shrink:0; }
   .q-ans.O{background:#3A1010;color:var(--o);} .q-ans.X{background:#10103A;color:var(--x);}
-  textarea, input[type=text], input[type=number] { width:100%; background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:9px 11px; color:var(--text); font-size:13px; outline:none; font-family:inherit; transition:border-color .15s; }
+  .q-done-badge { font-size:11px; color:var(--green); flex-shrink:0; }
+
+  textarea, input[type=text], input[type=number] {
+    width:100%; background:var(--bg); border:1px solid var(--border); border-radius:8px;
+    padding:9px 11px; color:var(--text); font-size:13px; outline:none; font-family:inherit; transition:border-color .15s;
+  }
   textarea:focus,input:focus{border-color:var(--o);} textarea{resize:vertical;min-height:56px;}
+
   .ans-row{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:7px 0;}
   .ans-btn{padding:8px;border-radius:7px;border:2px solid var(--border);background:var(--bg);color:var(--text);font-size:16px;font-weight:900;cursor:pointer;transition:all .15s;}
   .ans-btn.o.sel{border-color:var(--o);color:var(--o);background:#2A0A0A;}
   .ans-btn.x.sel{border-color:var(--x);color:var(--x);background:#0A0A2A;}
+
   .btn{padding:9px 14px;border-radius:8px;border:none;font-size:13px;font-weight:700;cursor:pointer;transition:opacity .15s,transform .1s;font-family:inherit;}
   .btn:active{transform:scale(.97);} .btn:disabled{opacity:.3;cursor:not-allowed;}
   .btn-o{background:var(--o);color:#fff;} .btn-x{background:var(--x);color:#fff;}
@@ -49,14 +60,20 @@
   .btn-danger{background:#3A0A0A;color:var(--o);border:1px solid var(--o);}
   .btn-full{width:100%;padding:13px;}
   .row{display:flex;gap:7px;flex-wrap:wrap;}
+
+  /* 타이머 */
   .timer-display{display:flex;align-items:center;gap:12px;margin-top:10px;}
   .timer-big{font-size:40px;font-weight:900;min-width:56px;}
   .timer-big.g{color:var(--green);} .timer-big.y{color:var(--yellow);} .timer-big.r{color:var(--o);} .timer-big.off{color:var(--sub);}
   .timer-track{flex:1;height:10px;background:#2A2A35;border-radius:5px;overflow:hidden;}
   .timer-fill{height:100%;border-radius:5px;transition:width 1s linear,background .4s;}
+
+  /* 현재 문제 */
   .cur-q{font-size:17px;font-weight:700;line-height:1.5;word-break:keep-all;padding:14px;background:var(--bg);border-radius:9px;border-left:4px solid var(--o);min-height:52px;color:var(--sub);}
   .cur-q.has{color:var(--text);}
   .cur-progress{font-size:12px;color:var(--sub);margin-bottom:6px;}
+
+  /* 통계 */
   .stats-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-bottom:10px;}
   .sbox{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:9px;text-align:center;}
   .snum{font-size:22px;font-weight:900;} .slbl{color:var(--sub);font-size:11px;}
@@ -69,11 +86,16 @@
   .gfill.o{background:linear-gradient(90deg,#AA2222,var(--o));}
   .gfill.x{background:linear-gradient(90deg,#2233AA,var(--x));}
   .gpct{font-size:13px;font-weight:900;width:36px;text-align:right;}
+
+  /* 풀이 버튼 */
+  .reveal-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;}
   .rev-btn{padding:14px;border-radius:10px;border:none;font-size:22px;font-weight:900;cursor:pointer;transition:transform .15s;}
   .rev-btn:hover:not(:disabled){transform:scale(1.03);}
   .rev-btn:disabled{opacity:.3;cursor:not-allowed;}
   .rev-btn.o{background:linear-gradient(135deg,var(--o),#FF7070);color:#fff;}
   .rev-btn.x{background:linear-gradient(135deg,var(--x),#60A5FA);color:#fff;}
+
+  /* 순위 / 히스토리 */
   .lb-row{display:flex;align-items:center;gap:9px;padding:8px 11px;background:var(--bg);border-radius:7px;border:1px solid var(--border);margin-bottom:5px;}
   .lb-rank{font-size:14px;font-weight:900;width:22px;text-align:center;}
   .lb-rank.gold{color:#F59E0B;} .lb-rank.silver{color:#9CA3AF;} .lb-rank.bronze{color:#CD7C2F;}
@@ -82,7 +104,10 @@
   .hist-q{font-size:12px;color:var(--sub);margin-bottom:4px;}
   .hist-s{display:flex;gap:9px;align-items:center;font-size:12px;}
   .hist-o{color:var(--o);font-weight:700;} .hist-x{color:var(--x);font-weight:700;}
+
   ::-webkit-scrollbar{width:5px;} ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+
+  /* 퀴즈 시작 버튼 강조 */
   .btn-start-quiz{background:linear-gradient(135deg,var(--green),#16A34A);color:#000;font-size:16px;padding:16px;}
 </style>
 </head>
@@ -97,8 +122,12 @@
     <button class="btn btn-danger" onclick="confirmReset()">전체 초기화</button>
   </div>
 </header>
+
 <div class="layout">
+  <!-- 사이드바 -->
   <div class="sidebar">
+
+    <!-- 타이머 -->
     <div class="panel">
       <div class="ptitle">⏱ 문제당 시간</div>
       <div style="display:flex;align-items:center;gap:8px;">
@@ -107,9 +136,13 @@
         <button class="btn btn-gray" onclick="saveTimer()">저장</button>
       </div>
     </div>
+
+    <!-- 문제 등록 -->
     <div class="panel">
       <div class="ptitle">📋 문제 목록 <span id="q-count" style="color:var(--text);font-size:12px;"></span></div>
-      <div class="q-list" id="q-list"><div style="color:var(--sub);font-size:13px;text-align:center;padding:14px 0">아래에서 문제를 추가하세요</div></div>
+      <div class="q-list" id="q-list">
+        <div style="color:var(--sub);font-size:13px;text-align:center;padding:14px 0">아래에서 문제를 추가하세요</div>
+      </div>
       <div style="margin-top:10px;display:flex;flex-direction:column;gap:7px;">
         <textarea id="new-q-text" placeholder="문제 내용 입력..." rows="2"></textarea>
         <div class="ans-row">
@@ -122,8 +155,13 @@
         </div>
       </div>
     </div>
+
   </div>
+
+  <!-- 메인 -->
   <div class="main">
+
+    <!-- 퀴즈 시작 -->
     <div class="panel">
       <div class="ptitle">🎯 퀴즈 진행</div>
       <div class="cur-progress" id="cur-progress"></div>
@@ -136,6 +174,8 @@
         <button class="btn btn-full btn-start-quiz" id="start-btn" onclick="startQuiz()">▶ 퀴즈 시작</button>
       </div>
     </div>
+
+    <!-- 실시간 집계 -->
     <div class="panel">
       <div class="ptitle">📊 실시간 집계</div>
       <div class="stats-grid">
@@ -146,10 +186,16 @@
       <div class="grow"><div class="glbl o">O</div><div class="gtrack"><div class="gfill o" id="g-o" style="width:0%"><span id="go-in"></span></div></div><div class="gpct" id="go-pct">0%</div></div>
       <div class="grow"><div class="glbl x">✕</div><div class="gtrack"><div class="gfill x" id="g-x" style="width:0%"><span id="gx-in"></span></div></div><div class="gpct" id="gx-pct">0%</div></div>
     </div>
+
+    <!-- 풀이 (정답 공개) -->
     <div class="panel" id="review-panel">
       <div class="ptitle">📖 풀이 — 정답 공개</div>
-      <div id="review-q-list"><div style="color:var(--sub);font-size:13px;text-align:center;padding:14px 0">퀴즈 완료 후 여기서 정답을 공개하세요</div></div>
+      <div id="review-q-list" style="display:flex;flex-direction:column;gap:7px;">
+        <div style="color:var(--sub);font-size:13px;text-align:center;padding:14px 0">퀴즈 완료 후 여기서 정답을 공개하세요</div>
+      </div>
     </div>
+
+    <!-- 순위 + 히스토리 -->
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
       <div class="panel">
         <div class="ptitle">🏆 실시간 순위</div>
@@ -160,33 +206,57 @@
         <div id="history"><div style="color:var(--sub);font-size:13px;text-align:center;padding:14px 0">기록 없음</div></div>
       </div>
     </div>
+
   </div>
 </div>
+
 <script>
 const socket = io();
 socket.emit('admin_join');
+
 let localQ = [];
 let selAnsVal = 'O';
 let timerTotal = 30;
 let roundHistory = [];
+
+function loadFromStorage() {
+  try {
+    const saved = localStorage.getItem('ox-quiz-questions');
+    if (saved) { localQ = JSON.parse(saved); renderQList(); }
+    const savedTimer = localStorage.getItem('ox-quiz-timer');
+    if (savedTimer) document.getElementById('timer-input').value = savedTimer;
+  } catch(e) {}
+}
+function saveToStorage() {
+  try {
+    localStorage.setItem('ox-quiz-questions', JSON.stringify(localQ));
+    localStorage.setItem('ox-quiz-timer', document.getElementById('timer-input').value);
+  } catch(e) {}
+}
+loadFromStorage();
+
 function selAns(a) {
   selAnsVal = a;
   document.getElementById('ans-o').classList.toggle('sel', a==='O');
   document.getElementById('ans-x').classList.toggle('sel', a==='X');
 }
+
 function addQ() {
   const text = document.getElementById('new-q-text').value.trim();
   if (!text) return;
   localQ.push({ text, answer: selAnsVal });
   document.getElementById('new-q-text').value = '';
   renderQList();
+  saveToStorage();
 }
-function delQ(i) { localQ.splice(i,1); renderQList(); }
-function saveQ() { socket.emit('set_questions', { questions: localQ }); alert('✓ 저장 완료!'); }
+
+function delQ(i) { localQ.splice(i,1); renderQList(); saveToStorage(); }
+function saveQ() { socket.emit('set_questions', { questions: localQ }); saveToStorage(); alert('✓ 저장 완료!'); }
 function saveTimer() {
   const d = parseInt(document.getElementById('timer-input').value);
-  if (d>=5&&d<=120) socket.emit('set_timer', { duration: d });
+  if (d>=5&&d<=120) { socket.emit('set_timer', { duration: d }); saveToStorage(); }
 }
+
 function renderQList() {
   const el = document.getElementById('q-list');
   document.getElementById('q-count').textContent = localQ.length ? `(${localQ.length}문제)` : '';
@@ -199,18 +269,27 @@ function renderQList() {
       <button onclick="delQ(${i})" style="background:none;border:none;color:#555;cursor:pointer;font-size:13px;padding:0 2px;">✕</button>
     </div>`).join('');
 }
-function renderReviewPanel(history) {
+
+function renderReviewPanel(history, revealedAnswers) {
   const el = document.getElementById('review-q-list');
-  if (!history||!history.length) { el.innerHTML='<div style="color:var(--sub);font-size:13px;text-align:center;padding:14px 0">퀴즈 완료 후 여기서 정답을 공개하세요</div>'; return; }
-  el.innerHTML = history.map((h,i) => `
-    <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;">
-      <div style="font-size:13px;margin-bottom:8px;font-weight:600;">${i+1}. ${h.question}</div>
-      <div style="display:flex;gap:7px;">
-        <button class="btn rev-btn o" onclick="revealAns(${h.index},'O')" style="flex:1;padding:10px;font-size:18px;">정답: ○</button>
-        <button class="btn rev-btn x" onclick="revealAns(${h.index},'X')" style="flex:1;padding:10px;font-size:18px;">정답: ✕</button>
+  if (!history||!history.length) {
+    el.innerHTML='<div style="color:var(--sub);font-size:13px;text-align:center;padding:14px 0">퀴즈 완료 후 여기서 정답을 공개하세요</div>';
+    return;
+  }
+  el.innerHTML = history.map((h,i) => {
+    const revealed = revealedAnswers && revealedAnswers[h.index];
+    return `<div style="background:var(--bg);border:1px solid ${revealed?'var(--green)':'var(--border)'};border-radius:8px;padding:10px 12px;">
+      <div style="font-size:13px;margin-bottom:8px;font-weight:600;display:flex;align-items:center;gap:8px;">
+        ${i+1}. ${h.question}
+        ${revealed ? `<span style="font-size:11px;background:var(--green);color:#000;padding:2px 8px;border-radius:6px;font-weight:700;">공개됨 ${h.answer==='O'?'○':'✕'}</span>` : ''}
       </div>
-    </div>`).join('');
+      <button class="btn btn-o" onclick="revealAns(${h.index})" style="width:100%;padding:12px;font-size:16px;" ${revealed?'disabled':''}>
+        ${revealed ? '✓ 정답 공개 완료' : '📢 정답 공개 (스크린 + 참여자 동시)'}
+      </button>
+    </div>`;
+  }).join('');
 }
+
 function startQuiz() {
   if (!localQ.length) { alert('문제를 먼저 등록해주세요!'); return; }
   if (!confirm(`총 ${localQ.length}문제로 퀴즈를 시작할까요?`)) return;
@@ -219,10 +298,15 @@ function startQuiz() {
   socket.emit('set_questions', { questions: localQ });
   setTimeout(() => socket.emit('start_quiz'), 300);
 }
-function revealAns(index, answer) { socket.emit('reveal_answer', { index, answer }); }
+
+function revealAns(index) {
+  socket.emit('reveal_answer', { index });
+}
+
 function confirmReset() {
   if (confirm('⚠️ 전체 초기화하면 참여자, 점수, 기록이 모두 삭제됩니다. 계속할까요?')) socket.emit('full_reset');
 }
+
 function setTimerDisplay(remaining, total) {
   timerTotal = total||timerTotal;
   const big = document.getElementById('timer-big');
@@ -235,24 +319,53 @@ function setTimerDisplay(remaining, total) {
   else if(remaining<=10){big.className='timer-big y';fill.style.background='var(--yellow)';}
   else{big.className='timer-big g';fill.style.background='var(--green)';}
 }
+
 socket.on('timer_tick', ({remaining,total}) => setTimerDisplay(remaining,total));
+
 socket.on('admin_update', (data) => {
   document.getElementById('pcount').textContent = data.participantCount;
-  const phases = { waiting:['대기중','waiting'], active:['진행중','active'], intermission:['전환중','intermission'], review:['풀이중','review'], finished:['완료','finished'] };
+
+  const phases = {
+    waiting:['대기중','waiting'], active:['진행중','active'],
+    intermission:['전환중','intermission'], review:['풀이중','review'],
+    finished:['완료','finished']
+  };
   const [txt,cls] = phases[data.phase]||phases.waiting;
   const pill = document.getElementById('phase-pill');
   pill.className = `phase-pill ${cls}`;
   pill.innerHTML = `<span class="dot"></span>${txt}`;
+
+  // 현재 문제
   const cq = document.getElementById('cur-q');
   const cp = document.getElementById('cur-progress');
-  if (data.currentQuestion) { cq.textContent = data.currentQuestion.text; cq.className = 'cur-q has'; cp.textContent = `${data.currentIndex+1} / ${data.totalQuestions}번째 문제`; }
-  else { cq.textContent = '대기 중 — 문제를 등록하고 퀴즈를 시작하세요'; cq.className = 'cur-q'; cp.textContent = ''; }
-  if (data.timerDuration) { timerTotal = data.timerDuration; document.getElementById('timer-input').value = data.timerDuration; }
+  if (data.currentQuestion) {
+    cq.textContent = data.currentQuestion.text;
+    cq.className = 'cur-q has';
+    cp.textContent = `${data.currentIndex+1} / ${data.totalQuestions}번째 문제`;
+  } else {
+    cq.textContent = '대기 중 — 문제를 등록하고 퀴즈를 시작하세요';
+    cq.className = 'cur-q';
+    cp.textContent = '';
+  }
+
+  if (data.timerDuration) {
+    timerTotal = data.timerDuration;
+    document.getElementById('timer-input').value = data.timerDuration;
+  }
+
+  // 시작 버튼
   const sb = document.getElementById('start-btn');
   if (data.quizRunning) { sb.textContent='진행중...'; sb.disabled=true; }
   else if (data.phase==='finished') { sb.textContent='▶ 다시 시작'; sb.disabled=false; }
   else { sb.textContent='▶ 퀴즈 시작'; sb.disabled=false; }
-  document.querySelectorAll('[id^="qi-"]').forEach((el,i) => { el.classList.toggle('current', i===data.currentIndex && data.quizRunning); el.classList.toggle('done', i<data.currentIndex); });
+
+  // 문제 목록 현재 진행 표시
+  document.querySelectorAll('[id^="qi-"]').forEach((el,i) => {
+    el.classList.toggle('current', i===data.currentIndex && data.quizRunning);
+    el.classList.toggle('done', i<data.currentIndex);
+  });
+
+  // 통계
   const {oCount,xCount,answered} = data.stats;
   document.getElementById('s-ans').textContent = answered;
   document.getElementById('s-o').textContent = oCount;
@@ -265,14 +378,29 @@ socket.on('admin_update', (data) => {
   document.getElementById('gx-pct').textContent=xp+'%';
   document.getElementById('go-in').textContent=oCount>0?oCount+'명':'';
   document.getElementById('gx-in').textContent=xCount>0?xCount+'명':'';
+
+  // 풀이 패널
   roundHistory = data.roundHistory||[];
-  if (data.phase==='finished' || data.phase==='review') renderReviewPanel(roundHistory);
+  renderReviewPanel(roundHistory, data.revealedAnswers||{});
+
+  // 순위
   const lb = document.getElementById('leaderboard');
   const rc=['gold','silver','bronze'], re=['🥇','🥈','🥉'];
-  lb.innerHTML = data.leaderboard?.length ? data.leaderboard.map((p,i)=>`<div class="lb-row"><div class="lb-rank ${rc[i]||''}">${re[i]||i+1}</div><div class="lb-name">${p.name}</div><div class="lb-score">${p.score}점</div></div>`).join('') : '<div style="color:var(--sub);font-size:13px;text-align:center;padding:14px 0">순위 없음</div>';
+  lb.innerHTML = data.leaderboard?.length
+    ? data.leaderboard.map((p,i)=>`<div class="lb-row"><div class="lb-rank ${rc[i]||''}">${re[i]||i+1}</div><div class="lb-name">${p.name}</div><div class="lb-score">${p.score}점</div></div>`).join('')
+    : '<div style="color:var(--sub);font-size:13px;text-align:center;padding:14px 0">순위 없음</div>';
+
+  // 히스토리
   const hl = document.getElementById('history');
-  hl.innerHTML = roundHistory.length ? [...roundHistory].reverse().map((h,i)=>`<div class="hist-item"><div class="hist-q">${roundHistory.length-i}번 · ${h.question}</div><div class="hist-s"><span class="hist-o">○ ${h.oCount}</span><span class="hist-x">✕ ${h.xCount}</span></div></div>`).join('') : '<div style="color:var(--sub);font-size:13px;text-align:center;padding:14px 0">기록 없음</div>';
+  hl.innerHTML = roundHistory.length
+    ? [...roundHistory].reverse().map((h,i)=>`
+        <div class="hist-item">
+          <div class="hist-q">${roundHistory.length-i}번 · ${h.question}</div>
+          <div class="hist-s"><span class="hist-o">○ ${h.oCount}</span><span class="hist-x">✕ ${h.xCount}</span></div>
+        </div>`).join('')
+    : '<div style="color:var(--sub);font-size:13px;text-align:center;padding:14px 0">기록 없음</div>';
 });
+
 socket.on('full_reset', () => { localQ=[]; renderQList(); setTimerDisplay(-1,timerTotal); renderReviewPanel([]); });
 </script>
 </body>

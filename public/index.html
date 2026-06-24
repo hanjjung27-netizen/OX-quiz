@@ -53,6 +53,11 @@
   /* 인터미션 */
   .intermission-num { font-size:80px; font-weight:900; color:var(--yellow); animation:popIn .3s cubic-bezier(.34,1.56,.64,1); }
   .intermission-label { color:var(--sub); font-size:16px; }
+  .calculating { display:flex; flex-direction:column; align-items:center; gap:16px; }
+  .calc-icon { font-size:56px; animation:spin 1.2s linear infinite; }
+  @keyframes spin { 0%{transform:rotate(0deg);} 100%{transform:rotate(360deg);} }
+  .calc-text { font-size:22px; font-weight:700; color:var(--yellow); }
+  .calc-sub { color:var(--sub); font-size:14px; }
 
   /* 결과(풀이) */
   .result-q { font-size:15px; font-weight:700; color:var(--sub); text-align:center; }
@@ -118,8 +123,15 @@
 
 <!-- 인터미션 (3초 대기) -->
 <div class="screen" id="s-inter">
-  <div class="intermission-label">잠시 후 다음 문제</div>
-  <div class="intermission-num" id="inter-num">3</div>
+  <div id="inter-next">
+    <div class="intermission-label" id="inter-label">잠시 후 다음 문제</div>
+    <div class="intermission-num" id="inter-num">3</div>
+  </div>
+  <div class="calculating" id="inter-calc" style="display:none">
+    <div class="calc-icon">⏳</div>
+    <div class="calc-text">점수 산출 중...</div>
+    <div class="calc-sub">잠시만 기다려주세요</div>
+  </div>
 </div>
 
 <!-- 풀이 화면 (정답 공개 시) -->
@@ -172,14 +184,14 @@ function joinQuiz() {
 document.getElementById('name-input').addEventListener('keydown', e => { if(e.key==='Enter') joinQuiz(); });
 
 function submitAnswer(ans) {
-  if (myAnswer) return;
+  if (document.getElementById('btn-o').disabled) return;
   myAnswer = ans;
   socket.emit('submit_answer', { answer: ans });
   document.getElementById('btn-o').classList.toggle('selected', ans==='O');
   document.getElementById('btn-x').classList.toggle('selected', ans==='X');
   document.getElementById('btn-o').classList.toggle('dimmed', ans!=='O');
   document.getElementById('btn-x').classList.toggle('dimmed', ans!=='X');
-  document.getElementById('status-msg').textContent = '✓ 답변 완료! 다음 문제를 기다리는 중...';
+  document.getElementById('status-msg').textContent = '✓ 답변 완료! 변경하려면 다시 누르세요.';
   document.getElementById('status-msg').className = 'status-msg done';
 }
 
@@ -233,8 +245,15 @@ socket.on('timer_end', () => {
   setTimer(0, timerTotal);
 });
 
-socket.on('intermission', ({ countdown }) => {
-  document.getElementById('inter-num').textContent = countdown;
+socket.on('intermission', ({ countdown, isLast }) => {
+  if (isLast) {
+    document.getElementById('inter-next').style.display = 'none';
+    document.getElementById('inter-calc').style.display = 'flex';
+  } else {
+    document.getElementById('inter-next').style.display = 'block';
+    document.getElementById('inter-calc').style.display = 'none';
+    document.getElementById('inter-num').textContent = countdown;
+  }
   show('s-inter');
 });
 
