@@ -3,8 +3,368 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>OX 퀴즈 스크린</title>
+<title>2026 배터리 잡콘서트 OX퀴즈</title>
 <script src="/socket.io/socket.io.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap');
+  * { margin:0; padding:0; box-sizing:border-box; }
+  :root {
+    --mint:#00C5A3; --mint-dark:#00A88A; --mint-light:#E0FAF4;
+    --navy:#1A3A6B; --navy-light:#2A5298;
+    --gold:#F5C842; --purple:#6B5CE7;
+    --o:#FF4B4B; --x:#3B82F6; --green:#22C55E; --yellow:#F59E0B;
+    --text:#1A3A6B; --sub:#4A7A9B; --white:#FFFFFF;
+  }
+  body {
+    background: var(--mint);
+    color: var(--navy);
+    font-family: 'Noto Sans KR', 'Apple SD Gothic Neo', sans-serif;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    background-image: radial-gradient(circle at 20% 20%, rgba(255,255,255,0.15) 0%, transparent 50%),
+                      radial-gradient(circle at 80% 80%, rgba(0,168,138,0.4) 0%, transparent 50%);
+  }
+
+  .screen { display:none; width:100%; height:100%; flex-direction:column; align-items:center; justify-content:center; gap:28px; padding:40px; }
+  .screen.active { display:flex; }
+
+  /* ── 대기 화면 ── */
+  .wait-card {
+    background: var(--white);
+    border-radius: 32px;
+    padding: 44px 64px;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(26,58,107,0.25), 0 4px 16px rgba(0,0,0,0.1);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+  }
+  .wait-card::before {
+    content: '';
+    position: absolute;
+    top: -40px; right: -40px;
+    width: 180px; height: 180px;
+    background: var(--mint-light);
+    border-radius: 50%;
+    opacity: 0.5;
+  }
+  .wait-card::after {
+    content: '';
+    position: absolute;
+    bottom: -30px; left: -30px;
+    width: 120px; height: 120px;
+    background: #E8F4FD;
+    border-radius: 50%;
+    opacity: 0.6;
+  }
+  .wait-year { font-size:clamp(20px,2vw,26px); font-weight:700; color:var(--mint-dark); letter-spacing:2px; margin-bottom:4px; }
+  .wait-title { font-size:clamp(32px,4.5vw,56px); font-weight:900; color:var(--navy); line-height:1.25; margin-bottom:12px; }
+  .wait-subtitle {
+    display: inline-block;
+    background: var(--gold);
+    color: var(--navy);
+    font-size: clamp(16px,1.8vw,22px);
+    font-weight: 800;
+    padding: 8px 24px;
+    border-radius: 50px;
+    margin-bottom: 24px;
+    letter-spacing: 1px;
+  }
+  .wait-qr {
+    width: clamp(120px, 14vw, 180px);
+    height: clamp(120px, 14vw, 180px);
+    margin-bottom: 16px;
+    border-radius: 12px;
+    border: 3px solid var(--mint-light);
+    padding: 6px;
+    background: white;
+  }
+  .wait-url-box {
+    background: var(--navy);
+    color: var(--white);
+    border-radius: 14px;
+    padding: 12px 28px;
+    font-size:clamp(16px,1.7vw,22px);
+    font-weight:700;
+    letter-spacing:1px;
+    display:inline-block;
+    margin-bottom: 8px;
+  }
+  .wait-url-sub { font-size:clamp(13px,1.3vw,16px); color:var(--sub); }
+
+  /* 배경 장식 */
+  .deco { position:fixed; pointer-events:none; font-size:80px; opacity:0.12; }
+  .deco-1 { top:5%; left:3%; transform:rotate(-20deg); }
+  .deco-2 { bottom:8%; right:4%; transform:rotate(15deg); }
+  .deco-3 { top:40%; left:1%; font-size:50px; opacity:0.1; }
+  .deco-4 { bottom:30%; right:2%; font-size:50px; opacity:0.1; }
+
+  /* ── 퀴즈 진행 화면 ── */
+  .q-header { display:flex; align-items:center; gap:16px; width:100%; }
+  .q-badge {
+    background: var(--navy);
+    color: var(--white);
+    font-size:18px; font-weight:900;
+    padding:8px 22px; border-radius:30px;
+  }
+  .q-count { color:var(--navy); font-size:18px; font-weight:700; opacity:0.6; }
+  .q-text {
+    font-size:clamp(26px,3.2vw,44px); font-weight:800;
+    text-align:center; line-height:1.45; word-break:keep-all;
+    padding:36px 48px;
+    background: var(--white);
+    border-radius:24px;
+    width:100%;
+    color: var(--navy);
+    box-shadow: 0 8px 24px rgba(26,58,107,0.15);
+  }
+
+  /* 타이머 */
+  .timer-section { width:100%; display:flex; align-items:center; gap:20px; }
+  .timer-big { font-size:72px; font-weight:900; min-width:100px; text-align:center; }
+  .timer-big.g { color:var(--navy); }
+  .timer-big.y { color:#E67E00; }
+  .timer-big.r { color:var(--o); animation:shake .1s infinite; }
+  @keyframes shake { 0%,100%{transform:translateX(0);} 50%{transform:translateX(4px);} }
+  .timer-track { flex:1; height:16px; background:rgba(255,255,255,0.4); border-radius:8px; overflow:hidden; }
+  .timer-fill { height:100%; border-radius:8px; transition:width 1s linear, background .5s; }
+
+  /* 통계 */
+  .stats-row { display:flex; gap:16px; width:100%; justify-content:center; }
+  .stat-box { background:var(--white); border-radius:16px; padding:16px 32px; text-align:center; box-shadow:0 4px 12px rgba(26,58,107,0.12); }
+  .stat-num { font-size:36px; font-weight:900; color:var(--navy); }
+  .stat-lbl { color:var(--sub); font-size:14px; margin-top:4px; font-weight:600; }
+  .stat-num.o { color:var(--o); } .stat-num.x { color:var(--x); }
+
+  /* 그래프 */
+  .graph-section { width:100%; display:flex; flex-direction:column; gap:14px; }
+  .graph-row { display:flex; align-items:center; gap:16px; }
+  .graph-lbl { font-size:36px; font-weight:900; width:48px; text-align:center; }
+  .graph-lbl.o { color:var(--o); } .graph-lbl.x { color:var(--x); }
+  .graph-track { flex:1; height:56px; background:rgba(255,255,255,0.4); border-radius:12px; overflow:hidden; }
+  .graph-fill { height:100%; border-radius:12px; transition:width .6s cubic-bezier(.4,0,.2,1); display:flex; align-items:center; justify-content:flex-end; padding-right:16px; font-size:20px; font-weight:800; color:#fff; }
+  .graph-fill.o { background:linear-gradient(90deg,#CC2222,var(--o)); }
+  .graph-fill.x { background:linear-gradient(90deg,#1133AA,var(--x)); }
+  .graph-pct { font-size:24px; font-weight:900; width:60px; text-align:right; color:var(--navy); }
+  .graph-cnt { font-size:18px; color:var(--navy); opacity:0.6; width:60px; text-align:right; }
+
+  /* 정답 공개 */
+  .reveal-section { width:100%; display:flex; flex-direction:column; align-items:center; gap:24px; }
+  .reveal-card { background:var(--white); border-radius:32px; padding:40px 60px; text-align:center; width:100%; box-shadow:0 12px 40px rgba(26,58,107,0.2); }
+  .reveal-q { font-size:20px; color:var(--sub); margin-bottom:16px; font-weight:600; }
+  .reveal-answer { font-size:100px; font-weight:900; animation:popIn .5s cubic-bezier(.34,1.56,.64,1); line-height:1; }
+  .reveal-answer.O { color:var(--o); }
+  .reveal-answer.X { color:var(--x); }
+  .reveal-label { font-size:30px; font-weight:800; margin-top:8px; }
+  .reveal-label.O { color:var(--o); } .reveal-label.X { color:var(--x); }
+  .correct-count { font-size:20px; color:var(--green); font-weight:700; margin-top:8px; }
+  .reveal-bars { width:100%; }
+
+  /* 최종 순위 */
+  .finish-card { background:var(--white); border-radius:32px; padding:36px 48px; width:100%; box-shadow:0 12px 40px rgba(26,58,107,0.2); }
+  .finish-title { font-size:42px; font-weight:900; color:var(--navy); text-align:center; margin-bottom:24px; }
+  .lb-grid { width:100%; display:grid; grid-template-columns:1fr 1fr; gap:10px; max-height:55vh; overflow-y:auto; }
+  .lb-row { display:flex; align-items:center; gap:14px; padding:12px 18px; background:#F0FAF7; border-radius:12px; }
+  .lb-rank { font-size:20px; font-weight:900; width:34px; text-align:center; color:var(--navy); }
+  .lb-rank.gold{color:#E6A800;} .lb-rank.silver{color:#7A8A9A;} .lb-rank.bronze{color:#B06820;}
+  .lb-name { flex:1; font-size:18px; font-weight:700; color:var(--navy); }
+  .lb-score { font-size:18px; font-weight:900; color:var(--mint-dark); }
+
+  @keyframes popIn { 0%{transform:scale(.2);opacity:0;} 100%{transform:scale(1);opacity:1;} }
+</style>
+</head>
+<body>
+
+<!-- 배경 장식 -->
+<div class="deco deco-1">⚡</div>
+<div class="deco deco-2">🔋</div>
+<div class="deco deco-3">💡</div>
+<div class="deco deco-4">🔍</div>
+
+<!-- 대기 -->
+<div class="screen active" id="s-wait">
+  <div class="wait-card">
+    <div class="wait-year">2026</div>
+    <div class="wait-title">배터리 잡콘서트<br>취업박람회</div>
+    <div class="wait-subtitle">⚡ 배터리 상식 최강자는 누구?</div>
+    <img src="/qr.png" class="wait-qr" alt="QR코드">
+    <div class="wait-url-box">📱 ox-quiz.onrender.com</div>
+    <div class="wait-url-sub">스마트폰으로 접속하세요</div>
+  </div>
+</div>
+
+<!-- 퀴즈 진행 -->
+<div class="screen" id="s-quiz">
+  <div class="q-header">
+    <div class="q-badge">Q</div>
+    <div class="q-count" id="q-count"></div>
+  </div>
+  <div class="q-text" id="q-text"></div>
+  <div class="timer-section">
+    <div class="timer-big g" id="timer-big">30</div>
+    <div class="timer-track"><div class="timer-fill" id="timer-fill" style="width:100%;background:var(--navy)"></div></div>
+  </div>
+  <div class="stats-row">
+    <div class="stat-box"><div class="stat-num" id="s-total">0</div><div class="stat-lbl">응답</div></div>
+    <div class="stat-box"><div class="stat-num o" id="s-o">0</div><div class="stat-lbl">O 선택</div></div>
+    <div class="stat-box"><div class="stat-num x" id="s-x">0</div><div class="stat-lbl">X 선택</div></div>
+  </div>
+  <div class="graph-section">
+    <div class="graph-row">
+      <div class="graph-lbl o">O</div>
+      <div class="graph-track"><div class="graph-fill o" id="g-o" style="width:0%"></div></div>
+      <div class="graph-pct" id="g-o-pct">0%</div>
+      <div class="graph-cnt" id="g-o-cnt">0명</div>
+    </div>
+    <div class="graph-row">
+      <div class="graph-lbl x">✕</div>
+      <div class="graph-track"><div class="graph-fill x" id="g-x" style="width:0%"></div></div>
+      <div class="graph-pct" id="g-x-pct">0%</div>
+      <div class="graph-cnt" id="g-x-cnt">0명</div>
+    </div>
+  </div>
+</div>
+
+<!-- 정답 공개 -->
+<div class="screen" id="s-reveal">
+  <div class="reveal-card">
+    <div class="reveal-q" id="rev-q"></div>
+    <div class="reveal-answer" id="rev-ans"></div>
+    <div class="reveal-label" id="rev-label"></div>
+    <div class="correct-count" id="rev-correct"></div>
+  </div>
+  <div class="graph-section reveal-bars" style="max-width:800px;width:100%;">
+    <div class="graph-row">
+      <div class="graph-lbl o">O</div>
+      <div class="graph-track"><div class="graph-fill o" id="rg-o" style="width:0%"></div></div>
+      <div class="graph-pct" id="rg-o-pct">0%</div>
+      <div class="graph-cnt" id="rg-o-cnt">0명</div>
+    </div>
+    <div class="graph-row">
+      <div class="graph-lbl x">✕</div>
+      <div class="graph-track"><div class="graph-fill x" id="rg-x" style="width:0%"></div></div>
+      <div class="graph-pct" id="rg-x-pct">0%</div>
+      <div class="graph-cnt" id="rg-x-cnt">0명</div>
+    </div>
+  </div>
+</div>
+
+<!-- 최종 순위 -->
+<div class="screen" id="s-finish">
+  <div class="finish-card">
+    <div class="finish-title">🏆 최종 순위</div>
+    <div class="lb-grid" id="lb-grid"></div>
+  </div>
+</div>
+
+<script>
+const socket = io();
+socket.emit('screen_join');
+let timerTotal = 30;
+
+function show(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function updateGraph(oCount, xCount) {
+  const tot = oCount + xCount || 1;
+  const op = Math.round(oCount/tot*100), xp = Math.round(xCount/tot*100);
+  document.getElementById('g-o').style.width = op+'%';
+  document.getElementById('g-x').style.width = xp+'%';
+  document.getElementById('g-o-pct').textContent = op+'%';
+  document.getElementById('g-x-pct').textContent = xp+'%';
+  document.getElementById('g-o-cnt').textContent = oCount+'명';
+  document.getElementById('g-x-cnt').textContent = xCount+'명';
+  document.getElementById('s-total').textContent = oCount+xCount;
+  document.getElementById('s-o').textContent = oCount;
+  document.getElementById('s-x').textContent = xCount;
+}
+
+function setTimer(remaining, total) {
+  timerTotal = total || timerTotal;
+  const big = document.getElementById('timer-big');
+  const fill = document.getElementById('timer-fill');
+  big.textContent = remaining;
+  fill.style.width = (remaining/timerTotal*100)+'%';
+  if (remaining<=5){ big.className='timer-big r'; fill.style.background='var(--o)'; }
+  else if(remaining<=10){ big.className='timer-big y'; fill.style.background='#E67E00'; }
+  else{ big.className='timer-big g'; fill.style.background='var(--navy)'; }
+}
+
+socket.on('screen_update', (data) => {
+  if (data.phase === 'waiting') { show('s-wait'); return; }
+  if (data.phase === 'finished') { showFinish(data.leaderboard); return; }
+  if (data.phase === 'intermission' && !data.quizRunning) { showFinish(data.leaderboard); return; }
+  if (data.currentQuestion) {
+    document.getElementById('q-text').textContent = data.currentQuestion.text;
+    document.getElementById('q-count').textContent = `${data.currentQuestion.index+1} / ${data.currentQuestion.total}`;
+    updateGraph(data.stats.oCount, data.stats.xCount);
+    if (data.timerRemaining > 0) setTimer(data.timerRemaining, data.timerDuration);
+    if (document.getElementById('s-reveal').classList.contains('active')) return;
+    show('s-quiz');
+  }
+});
+
+socket.on('timer_tick', ({remaining, total}) => {
+  if (document.getElementById('s-quiz').classList.contains('active')) setTimer(remaining, total);
+});
+
+socket.on('question_start', ({ text, index, total, timerDuration }) => {
+  timerTotal = timerDuration || 30;
+  document.getElementById('q-text').textContent = text;
+  document.getElementById('q-count').textContent = `${index+1} / ${total}`;
+  updateGraph(0, 0);
+  setTimer(timerTotal, timerTotal);
+  show('s-quiz');
+});
+
+socket.on('answer_reveal', ({ questionText, correctAnswer, oCount, xCount, correctCount }) => {
+  document.getElementById('rev-q').textContent = questionText;
+  document.getElementById('rev-ans').textContent = correctAnswer === 'O' ? '○' : '✕';
+  document.getElementById('rev-ans').className = 'reveal-answer ' + correctAnswer;
+  document.getElementById('rev-label').textContent = correctAnswer === 'O' ? '맞다!' : '아니다!';
+  document.getElementById('rev-label').className = 'reveal-label ' + correctAnswer;
+  document.getElementById('rev-correct').textContent = `✓ 정답자 ${correctCount}명`;
+  const tot = oCount+xCount||1;
+  const op=Math.round(oCount/tot*100), xp=Math.round(xCount/tot*100);
+  document.getElementById('rg-o').style.width=op+'%';
+  document.getElementById('rg-x').style.width=xp+'%';
+  document.getElementById('rg-o-pct').textContent=op+'%';
+  document.getElementById('rg-x-pct').textContent=xp+'%';
+  document.getElementById('rg-o-cnt').textContent=oCount+'명';
+  document.getElementById('rg-x-cnt').textContent=xCount+'명';
+  show('s-reveal');
+});
+
+socket.on('intermission', ({ isLast }) => {
+  if (!isLast) show('s-quiz');
+});
+
+socket.on('quiz_finished', ({ leaderboard }) => showFinish(leaderboard));
+
+function showFinish(lb) {
+  const rc=['gold','silver','bronze'], re=['🥇','🥈','🥉'];
+  document.getElementById('lb-grid').innerHTML = (lb||[]).map((p,i) => `
+    <div class="lb-row">
+      <div class="lb-rank ${rc[i]||''}">${re[i]||i+1}</div>
+      <div class="lb-name">${p.name}</div>
+      <div class="lb-score">${p.score}점</div>
+    </div>`).join('');
+  show('s-finish');
+}
+
+socket.on('full_reset', () => show('s-wait'));
+</script>
+</body>
+</html>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
   :root { --o:#FF4B4B; --x:#3B82F6; --bg:#0A0A0F; --surface:#14141C; --text:#F0F0F8; --sub:#6666AA; --green:#22C55E; --yellow:#F59E0B; }
