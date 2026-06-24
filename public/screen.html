@@ -9,27 +9,21 @@
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap');
   * { margin:0; padding:0; box-sizing:border-box; }
   :root {
-    --mint:#00C5A3; --mint-dark:#00A88A; --mint-light:#E0FAF4;
-    --navy:#1A3A6B; --navy-light:#2A5298;
-    --gold:#F5C842; --purple:#6B5CE7;
+    --mint:#00C5A3; --mint-dark:#00A88A; --mint-light:#E8FAF5;
+    --navy:#1A3A6B; --gold:#F5C842;
     --o:#FF4B4B; --x:#3B82F6; --green:#22C55E; --yellow:#F59E0B;
-    --text:#1A3A6B; --sub:#4A7A9B; --white:#FFFFFF;
+    --bg:#F4FDFB; --white:#FFFFFF; --sub:#6B8CA8; --border:#D0EDE8;
   }
   body {
-    background: var(--mint);
+    background: var(--bg);
     color: var(--navy);
     font-family: 'Noto Sans KR', 'Apple SD Gothic Neo', sans-serif;
-    width: 100vw;
-    height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    width: 100vw; height: 100vh;
+    display: flex; align-items: center; justify-content: center;
     overflow: hidden;
-    background-image: radial-gradient(circle at 20% 20%, rgba(255,255,255,0.15) 0%, transparent 50%),
-                      radial-gradient(circle at 80% 80%, rgba(0,168,138,0.4) 0%, transparent 50%);
   }
 
-  .screen { display:none; width:100%; height:100%; flex-direction:column; align-items:center; justify-content:center; gap:28px; padding:40px; }
+  .screen { display:none; width:100%; height:100%; flex-direction:column; align-items:center; justify-content:center; gap:24px; padding:40px; }
   .screen.active { display:flex; }
 
   /* ── 대기 화면 ── */
@@ -133,7 +127,7 @@
   .timer-big.y { color:#E67E00; }
   .timer-big.r { color:var(--o); animation:shake .1s infinite; }
   @keyframes shake { 0%,100%{transform:translateX(0);} 50%{transform:translateX(4px);} }
-  .timer-track { flex:1; height:16px; background:rgba(255,255,255,0.4); border-radius:8px; overflow:hidden; }
+  .timer-track { flex:1; height:16px; background:var(--mint-light); border-radius:8px; overflow:hidden; }
   .timer-fill { height:100%; border-radius:8px; transition:width 1s linear, background .5s; }
 
   /* 통계 */
@@ -148,7 +142,7 @@
   .graph-row { display:flex; align-items:center; gap:16px; }
   .graph-lbl { font-size:36px; font-weight:900; width:48px; text-align:center; }
   .graph-lbl.o { color:var(--o); } .graph-lbl.x { color:var(--x); }
-  .graph-track { flex:1; height:56px; background:rgba(255,255,255,0.4); border-radius:12px; overflow:hidden; }
+  .graph-track { flex:1; height:56px; background:var(--mint-light); border-radius:12px; overflow:hidden; }
   .graph-fill { height:100%; border-radius:12px; transition:width .6s cubic-bezier(.4,0,.2,1); display:flex; align-items:center; justify-content:flex-end; padding-right:16px; font-size:20px; font-weight:800; color:#fff; }
   .graph-fill.o { background:linear-gradient(90deg,#CC2222,var(--o)); }
   .graph-fill.x { background:linear-gradient(90deg,#1133AA,var(--x)); }
@@ -182,12 +176,6 @@
 </head>
 <body>
 
-<!-- 배경 장식 -->
-<div class="deco deco-1">⚡</div>
-<div class="deco deco-2">🔋</div>
-<div class="deco deco-3">💡</div>
-<div class="deco deco-4">🔍</div>
-
 <!-- 대기 -->
 <div class="screen active" id="s-wait">
   <div class="wait-card">
@@ -195,7 +183,6 @@
     <div class="wait-title">배터리 잡콘서트<br>취업박람회</div>
     <div class="wait-subtitle">⚡ 배터리 상식 최강자는 누구?</div>
     <img src="/qr.png" class="wait-qr" alt="QR코드">
-    <div class="wait-url-box">📱 ox-quiz.onrender.com</div>
     <div class="wait-url-sub">스마트폰으로 접속하세요</div>
   </div>
 </div>
