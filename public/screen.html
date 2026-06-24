@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="ko" style="background:#F4FDFB">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -14,8 +14,9 @@
     --o:#FF4B4B; --x:#3B82F6; --green:#22C55E; --yellow:#F59E0B;
     --bg:#F4FDFB; --white:#FFFFFF; --sub:#6B8CA8; --border:#D0EDE8;
   }
+  html { background:#F4FDFB !important; }
   html, body {
-    background: var(--bg);
+    background: #F4FDFB;
     color: var(--navy);
     font-family: 'Noto Sans KR', 'Apple SD Gothic Neo', sans-serif;
     width: 100vw; height: 100vh;
@@ -118,6 +119,7 @@
     width:100%;
     color: var(--navy);
     box-shadow: 0 8px 24px rgba(26,58,107,0.15);
+    border: 2px solid var(--border);
   }
 
   /* 타이머 */
@@ -188,12 +190,12 @@
 </div>
 
 <!-- 퀴즈 진행 -->
-<div class="screen" id="s-quiz">
+<div class="screen" id="s-quiz" style="background:#F4FDFB;">
   <div class="q-header">
     <div class="q-badge">Q</div>
     <div class="q-count" id="q-count"></div>
   </div>
-  <div class="q-text" id="q-text"></div>
+  <div class="q-text" id="q-text" style="background:#FFFFFF;color:#1A3A6B;border:2px solid #D0EDE8;font-size:clamp(28px,3.5vw,52px);"></div>
   <div class="timer-section">
     <div class="timer-big g" id="timer-big">30</div>
     <div class="timer-track"><div class="timer-fill" id="timer-fill" style="width:100%;background:var(--navy)"></div></div>
@@ -220,7 +222,7 @@
 </div>
 
 <!-- 정답 공개 -->
-<div class="screen" id="s-reveal">
+<div class="screen" id="s-reveal" style="background:#F4FDFB;">
   <div class="reveal-card">
     <div class="reveal-q" id="rev-q"></div>
     <div class="reveal-answer" id="rev-ans"></div>
@@ -244,7 +246,7 @@
 </div>
 
 <!-- 최종 순위 -->
-<div class="screen" id="s-finish">
+<div class="screen" id="s-finish" style="background:#F4FDFB;">
   <div class="finish-card">
     <div class="finish-title">🏆 최종 순위</div>
     <div class="lb-grid" id="lb-grid"></div>
@@ -431,12 +433,12 @@ socket.on('full_reset', () => show('s-wait'));
 </div>
 
 <!-- 퀴즈 진행 -->
-<div class="screen" id="s-quiz">
+<div class="screen" id="s-quiz" style="background:#F4FDFB;">
   <div class="q-header">
     <div class="q-badge">Q</div>
     <div class="q-count" id="q-count"></div>
   </div>
-  <div class="q-text" id="q-text"></div>
+  <div class="q-text" id="q-text" style="background:#FFFFFF;color:#1A3A6B;border:2px solid #D0EDE8;font-size:clamp(28px,3.5vw,52px);"></div>
   <div class="timer-section">
     <div class="timer-big g" id="timer-big">30</div>
     <div class="timer-track"><div class="timer-fill" id="timer-fill" style="width:100%;background:var(--green)"></div></div>
@@ -463,7 +465,7 @@ socket.on('full_reset', () => show('s-wait'));
 </div>
 
 <!-- 정답 공개 -->
-<div class="screen" id="s-reveal">
+<div class="screen" id="s-reveal" style="background:#F4FDFB;">
   <div class="reveal-section">
     <div class="reveal-q" id="rev-q"></div>
     <div class="reveal-answer" id="rev-ans"></div>
@@ -487,7 +489,7 @@ socket.on('full_reset', () => show('s-wait'));
 </div>
 
 <!-- 최종 순위 -->
-<div class="screen" id="s-finish">
+<div class="screen" id="s-finish" style="background:#F4FDFB;">
   <div class="finish-title">🏆 최종 순위</div>
   <div class="lb-grid" id="lb-grid"></div>
 </div>
