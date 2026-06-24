@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>2026 배터리 잡콘서트 OX퀴즈 — 관리자</title>
 <script src="/socket.io/socket.io.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
   :root {
@@ -159,6 +160,13 @@
       <div class="ptitle">📋 문제 목록 <span id="q-count" style="color:var(--navy);font-size:12px;"></span></div>
       <div class="q-list" id="q-list"><div style="color:var(--sub);font-size:13px;text-align:center;padding:14px 0">아래에서 문제를 추가하세요</div></div>
       <div style="margin-top:10px;display:flex;flex-direction:column;gap:7px;">
+        <!-- 엑셀 업로드 -->
+        <label style="display:flex;align-items:center;justify-content:center;gap:8px;padding:10px;background:var(--mint-light);border:1.5px dashed var(--mint);border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;color:var(--mint-dark);">
+          📂 엑셀 파일 업로드 (.xlsx)
+          <input type="file" id="excel-upload" accept=".xlsx,.xls" style="display:none" onchange="uploadExcel(this)">
+        </label>
+        <div style="color:var(--sub);font-size:11px;text-align:center;">A열: 문제 / B열: 정답(O 또는 X)</div>
+        <hr style="border:none;border-top:1px solid var(--border);margin:2px 0;">
         <textarea id="new-q-text" placeholder="문제 내용 입력..." rows="2"></textarea>
         <div class="ans-row">
           <button class="ans-btn o sel" id="ans-o" onclick="selAns('O')">○ 맞다</button>
@@ -236,7 +244,38 @@ function saveToStorage() {
 }
 loadFromStorage();
 
-function selAns(a) {
+function uploadExcel(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const wb = XLSX.read(e.target.result, { type: 'array' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
+      let added = 0;
+      rows.forEach(row => {
+        const text = (row[0] || '').toString().trim();
+        const ans = (row[1] || '').toString().trim().toUpperCase();
+        if (text && (ans === 'O' || ans === 'X')) {
+          localQ.push({ text, answer: ans });
+          added++;
+        }
+      });
+      if (added > 0) {
+        renderQList();
+        saveToStorage();
+        alert(`✓ ${added}개 문제가 등록됐어요!`);
+      } else {
+        alert('등록된 문제가 없어요.\nA열: 문제, B열: O 또는 X 형식인지 확인해주세요.');
+      }
+    } catch(err) {
+      alert('파일을 읽는 중 오류가 발생했어요.');
+    }
+    input.value = '';
+  };
+  reader.readAsArrayBuffer(file);
+}
   selAnsVal = a;
   document.getElementById('ans-o').classList.toggle('sel', a==='O');
   document.getElementById('ans-x').classList.toggle('sel', a==='X');
