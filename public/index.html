@@ -78,7 +78,7 @@
   .wait-msg { color:var(--sub); font-size:15px; text-align:center; line-height:1.7; }
 
   /* 퀴즈 */
-  .q-progress { color:var(--sub); opacity:0.8; font-size:13px; letter-spacing:1px; font-weight:700; }
+  .q-progress { color:var(--sub); opacity:0.8; font-size:13px; letter-spacing:1px; font-weight:700; text-align:center; width:100%; }
   .timer-wrap { width:100%; display:flex; flex-direction:column; align-items:center; gap:8px; }
   .timer-num { font-size:56px; font-weight:900; line-height:1; transition:color .3s; }
   .timer-num.green { color:var(--mint-dark); }
@@ -128,7 +128,7 @@
   .my-rank-label { color:var(--sub); font-size:13px; margin-top:4px; font-weight:600; }
   .my-rank-score { font-size:16px; font-weight:700; color:var(--navy); margin-top:4px; }
   .lb-list { width:100%; display:flex; flex-direction:column; gap:5px; max-height:50vh; overflow-y:auto; padding-right:4px; }
-  .lb-row { display:flex; align-items:center; gap:12px; padding:11px 14px; background:var(--white); border-radius:12px; border:1px solid #E0EEE8; }
+  .lb-row { display:flex; align-items:center; gap:12px; padding:11px 14px; background:var(--white); border-radius:12px; border:1px solid #D0EDE8; box-shadow:0 1px 4px rgba(26,58,107,0.06); }
   .lb-row.me { background:var(--mint-light); border:1.5px solid var(--mint-dark); }
   .lb-rank { font-size:16px; font-weight:900; width:28px; text-align:center; color:var(--navy); }
   .lb-name { flex:1; font-size:15px; font-weight:600; color:var(--navy); }
@@ -214,6 +214,12 @@
     <div class="my-rank-score" id="my-rank-score"></div>
   </div>
   <div class="lb-list" id="lb-list"></div>
+</div>
+
+<!-- 전체 정답 공개 -->
+<div class="screen" id="s-all-answers">
+  <div class="finished-title" style="font-size:22px;">📋 전체 정답</div>
+  <div id="all-answers-list" style="width:100%;display:flex;flex-direction:column;gap:8px;max-height:70vh;overflow-y:auto;"></div>
 </div>
 
 <script>
@@ -356,6 +362,21 @@ function showFinish(leaderboard) {
 }
 
 socket.on('full_reset', () => { myAnswer=null; myName=''; document.getElementById('name-input').value=''; show('s-join'); });
+
+socket.on('reveal_all_answers', ({ answers }) => {
+  const list = document.getElementById('all-answers-list');
+  list.innerHTML = answers.map((a, i) => `
+    <div style="background:var(--white);border-radius:12px;padding:12px 14px;border:1.5px solid ${a.correctAnswer==='O'?'#FFD0D0':'#D0DCFF'};">
+      <div style="font-size:12px;color:var(--sub);margin-bottom:4px;font-weight:600;">${i+1}번</div>
+      <div style="font-size:14px;font-weight:700;color:var(--navy);margin-bottom:6px;">${a.questionText}</div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:18px;font-weight:900;color:${a.correctAnswer==='O'?'var(--o)':'var(--x)'};">${a.correctAnswer==='O'?'○':'✕'}</span>
+        <span style="font-size:12px;color:var(--sub);">정답자 ${a.correctCount}명 · O ${a.oCount}명 / X ${a.xCount}명</span>
+      </div>
+    </div>
+  `).join('');
+  show('s-all-answers');
+});
 </script>
 </body>
 </html>

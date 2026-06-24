@@ -240,6 +240,25 @@ io.on('connection', (socket) => {
     io.to('admin').emit('admin_update', adminState());
   });
 
+  // 전체 정답 한번에 공개
+  socket.on('reveal_all', () => {
+    state.roundHistory.forEach(h => { state.revealedAnswers[h.index] = true; });
+    const allAnswers = state.roundHistory.map(h => {
+      const q = state.questions[h.index];
+      return {
+        questionIndex: h.index,
+        questionText: q ? q.text : '',
+        correctAnswer: h.answer,
+        oCount: h.oCount,
+        xCount: h.xCount,
+        correctCount: h.correctCount
+      };
+    });
+    io.to('participants').emit('reveal_all_answers', { answers: allAnswers });
+    io.to('screen').emit('reveal_all_answers', { answers: allAnswers });
+    io.to('admin').emit('admin_update', adminState());
+  });
+
   socket.on('full_reset', () => {
     clearTimer();
     state = {

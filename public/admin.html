@@ -340,7 +340,7 @@ function stopQuiz() {
 }
 function revealAllAns() {
   if (!confirm('모든 문제의 정답을 한번에 공개할까요?')) return;
-  roundHistory.forEach(h => socket.emit('reveal_answer', { index: h.index }));
+  socket.emit('reveal_all');
 }
 
 function startQuiz() {

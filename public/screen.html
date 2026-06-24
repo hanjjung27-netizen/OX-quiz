@@ -595,7 +595,37 @@ function showFinish(lb) {
   show('s-finish');
 }
 
-socket.on('full_reset', () => show('s-wait'));
+socket.on('reveal_all_answers', ({ answers }) => {
+  const existing = document.getElementById('s-all');
+  if (existing) existing.remove();
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const tmp = document.createElement('div');
+  tmp.id = 's-all';
+  tmp.style.cssText = 'position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;gap:20px;padding:40px;background:#F4FDFB;overflow:auto;z-index:999;';
+  const title = document.createElement('div');
+  title.style.cssText = 'font-size:clamp(22px,2.8vw,36px);font-weight:900;color:#1A3A6B;';
+  title.textContent = '📋 전체 정답';
+  tmp.appendChild(title);
+  const grid = document.createElement('div');
+  grid.style.cssText = 'width:100%;display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;';
+  answers.forEach((a, i) => {
+    const card = document.createElement('div');
+    card.style.cssText = 'background:white;border-radius:16px;padding:18px 20px;border:2px solid ' + (a.correctAnswer==='O'?'#FFD0D0':'#D0DCFF') + ';box-shadow:0 4px 12px rgba(26,58,107,0.08);';
+    card.innerHTML = '<div style="font-size:13px;color:#6B8CA8;margin-bottom:6px;font-weight:700;">' + (i+1) + '번</div>' +
+      '<div style="font-size:15px;font-weight:700;color:#1A3A6B;margin-bottom:10px;line-height:1.4;">' + a.questionText + '</div>' +
+      '<div style="display:flex;align-items:center;gap:10px;">' +
+        '<span style="font-size:28px;font-weight:900;color:' + (a.correctAnswer==='O'?'#FF4B4B':'#3B82F6') + ';">' + (a.correctAnswer==='O'?'○':'✕') + '</span>' +
+        '<span style="font-size:12px;color:#6B8CA8;">정답자 <strong style=\"color:#22C55E;\">' + a.correctCount + '명</strong> · O ' + a.oCount + ' / X ' + a.xCount + '</span>' +
+      '</div>';
+    grid.appendChild(card);
+  });
+  tmp.appendChild(grid);
+  document.body.appendChild(tmp);
+});
+
+socket.on('full_reset', () => {
+  const existing = document.getElementById('s-all');
+  if (existing) existing.remove();
+  show('s-wait');
+});
 </script>
-</body>
-</html>
