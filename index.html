@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>OX 퀴즈</title>
+<script src="/socket.io/socket.io.js"></script>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  :root { --o:#FF4B4B; --x:#3B82F6; --bg:#0F0F13; --surface:#1A1A22; --text:#F0F0F5; --sub:#888899; --green:#22C55E; --yellow:#F59E0B; }
+  body { background:var(--bg); color:var(--text); font-family:'Apple SD Gothic Neo','Noto Sans KR',sans-serif; min-height:100dvh; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:24px 20px; }
+
+  .screen { display:none; width:100%; max-width:440px; flex-direction:column; align-items:center; gap:20px; }
+  .screen.active { display:flex; }
+
+  /* 입장 */
+  .logo { font-size:52px; font-weight:900; letter-spacing:-2px; }
+  .logo span:first-child { color:var(--o); } .logo span:last-child { color:var(--x); }
+  .logo-sub { color:var(--sub); font-size:13px; letter-spacing:2px; }
+  input[type=text] { width:100%; background:var(--surface); border:2px solid #333344; border-radius:14px; padding:16px 20px; font-size:18px; color:var(--text); outline:none; text-align:center; font-family:inherit; transition:border-color .2s; }
+  input[type=text]:focus { border-color:var(--o); }
+  .btn-join { width:100%; padding:18px; border-radius:14px; border:none; font-size:18px; font-weight:700; cursor:pointer; background:linear-gradient(135deg,var(--o),#FF6B6B); color:#fff; }
+
+  /* 대기 */
+  .pulse-dot { width:12px; height:12px; border-radius:50%; background:var(--o); animation:pulse 1.4s infinite; }
+  @keyframes pulse { 0%,100%{transform:scale(1);opacity:1;} 50%{transform:scale(1.6);opacity:.4;} }
+  .wait-name { font-size:22px; font-weight:700; text-align:center; }
+  .wait-name em { color:var(--o); font-style:normal; }
+  .wait-msg { color:var(--sub); font-size:15px; text-align:center; line-height:1.7; }
+
+  /* 퀴즈 */
+  .q-progress { color:var(--sub); font-size:13px; letter-spacing:1px; }
+  .timer-wrap { width:100%; display:flex; flex-direction:column; align-items:center; gap:8px; }
+  .timer-num { font-size:56px; font-weight:900; line-height:1; transition:color .3s; }
+  .timer-num.green { color:var(--green); }
+  .timer-num.yellow { color:var(--yellow); }
+  .timer-num.red { color:var(--o); animation:timerShake .15s infinite; }
+  @keyframes timerShake { 0%,100%{transform:translateX(0);} 50%{transform:translateX(3px);} }
+  .timer-track { width:100%; height:8px; background:#2A2A35; border-radius:4px; overflow:hidden; }
+  .timer-fill { height:100%; border-radius:4px; transition:width 1s linear, background .5s; }
+  .q-text { font-size:clamp(17px,4.2vw,23px); font-weight:700; text-align:center; line-height:1.55; word-break:keep-all; padding:26px 22px; background:var(--surface); border-radius:20px; width:100%; }
+  .ox-buttons { display:grid; grid-template-columns:1fr 1fr; gap:14px; width:100%; }
+  .ox-btn { aspect-ratio:1; border-radius:22px; border:none; font-size:clamp(52px,13vw,76px); font-weight:900; cursor:pointer; transition:transform .12s,opacity .2s,box-shadow .2s; display:flex; align-items:center; justify-content:center; }
+  .ox-btn:active:not(:disabled) { transform:scale(.92); }
+  .ox-btn.o { background:linear-gradient(135deg,#FF4B4B,#FF7070); color:#fff; }
+  .ox-btn.x { background:linear-gradient(135deg,#3B82F6,#60A5FA); color:#fff; }
+  .ox-btn.selected { box-shadow:0 0 0 5px #fff; }
+  .ox-btn.dimmed { opacity:.25; }
+  .ox-btn:disabled { cursor:not-allowed; }
+  .status-msg { font-size:15px; text-align:center; color:var(--sub); }
+  .status-msg.done { color:var(--green); }
+
+  /* 인터미션 */
+  .intermission-num { font-size:80px; font-weight:900; color:var(--yellow); animation:popIn .3s cubic-bezier(.34,1.56,.64,1); }
+  .intermission-label { color:var(--sub); font-size:16px; }
+
+  /* 결과(풀이) */
+  .result-q { font-size:15px; font-weight:700; color:var(--sub); text-align:center; }
+  .result-answer { font-size:36px; font-weight:900; }
+  .result-answer.O { color:var(--o); }
+  .result-answer.X { color:var(--x); }
+  .bar-wrap { width:100%; background:var(--surface); border-radius:18px; padding:20px; display:flex; flex-direction:column; gap:12px; }
+  .bar-row { display:flex; align-items:center; gap:10px; }
+  .bar-lbl { font-size:20px; font-weight:900; width:28px; text-align:center; }
+  .bar-lbl.o { color:var(--o); } .bar-lbl.x { color:var(--x); }
+  .bar-track { flex:1; height:26px; background:#2A2A35; border-radius:7px; overflow:hidden; }
+  .bar-fill { height:100%; border-radius:7px; transition:width 1s cubic-bezier(.4,0,.2,1); }
+  .bar-fill.o { background:var(--o); } .bar-fill.x { background:var(--x); }
+  .bar-cnt { font-size:15px; font-weight:700; width:34px; text-align:right; }
+
+  /* 최종 순위 */
+  .finished-title { font-size:28px; font-weight:900; text-align:center; }
+  .lb-list { width:100%; display:flex; flex-direction:column; gap:6px; }
+  .lb-row { display:flex; align-items:center; gap:12px; padding:12px 16px; background:var(--surface); border-radius:12px; }
+  .lb-rank { font-size:18px; font-weight:900; width:28px; text-align:center; }
+  .lb-name { flex:1; font-size:16px; font-weight:600; }
+  .lb-score { font-size:16px; font-weight:900; color:var(--green); }
+
+  @keyframes popIn { 0%{transform:scale(.3);opacity:0;} 100%{transform:scale(1);opacity:1;} }
+</style>
+</head>
+<body>
+
+<!-- 입장 -->
+<div class="screen active" id="s-join">
+  <div style="text-align:center"><div class="logo"><span>O</span><span>X</span></div><div class="logo-sub">실시간 퀴즈</div></div>
+  <input type="text" id="name-input" placeholder="이름 입력" maxlength="10" autocomplete="off">
+  <button class="btn-join" onclick="joinQuiz()">참여하기</button>
+</div>
+
+<!-- 대기 -->
+<div class="screen" id="s-wait">
+  <div class="pulse-dot"></div>
+  <div class="wait-name">어서오세요, <em id="disp-name"></em>님!</div>
+  <div class="wait-msg">진행자가 퀴즈를 시작하면<br>문제가 자동으로 나타납니다.</div>
+</div>
+
+<!-- 퀴즈 -->
+<div class="screen" id="s-quiz">
+  <div class="q-progress" id="q-progress"></div>
+  <div class="timer-wrap">
+    <div class="timer-num green" id="timer-num">30</div>
+    <div class="timer-track"><div class="timer-fill" id="timer-fill" style="width:100%;background:var(--green)"></div></div>
+  </div>
+  <div class="q-text" id="q-text"></div>
+  <div class="ox-buttons">
+    <button class="ox-btn o" id="btn-o" onclick="submitAnswer('O')">○</button>
+    <button class="ox-btn x" id="btn-x" onclick="submitAnswer('X')">✕</button>
+  </div>
+  <div class="status-msg" id="status-msg"></div>
+</div>
+
+<!-- 인터미션 (3초 대기) -->
+<div class="screen" id="s-inter">
+  <div class="intermission-label">잠시 후 다음 문제</div>
+  <div class="intermission-num" id="inter-num">3</div>
+</div>
+
+<!-- 풀이 화면 (정답 공개 시) -->
+<div class="screen" id="s-review">
+  <div class="result-q" id="rev-q"></div>
+  <div class="result-answer" id="rev-ans"></div>
+  <div class="bar-wrap">
+    <div class="bar-row">
+      <div class="bar-lbl o">O</div>
+      <div class="bar-track"><div class="bar-fill o" id="rev-bar-o" style="width:0%"></div></div>
+      <div class="bar-cnt" id="rev-cnt-o">0</div>
+    </div>
+    <div class="bar-row">
+      <div class="bar-lbl x">✕</div>
+      <div class="bar-track"><div class="bar-fill x" id="rev-bar-x" style="width:0%"></div></div>
+      <div class="bar-cnt" id="rev-cnt-x">0</div>
+    </div>
+  </div>
+</div>
+
+<!-- 최종 순위 -->
+<div class="screen" id="s-finish">
+  <div class="finished-title">🏆 최종 순위</div>
+  <div class="lb-list" id="lb-list"></div>
+</div>
+
+<script>
+const socket = io();
+let myName = '';
+let myAnswer = null;
+let timerTotal = 30;
+
+function show(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function joinQuiz() {
+  const name = document.getElementById('name-input').value.trim();
+  if (!name) { document.getElementById('name-input').focus(); return; }
+  myName = name;
+  document.getElementById('disp-name').textContent = name;
+  socket.emit('join', { name });
+}
+document.getElementById('name-input').addEventListener('keydown', e => { if(e.key==='Enter') joinQuiz(); });
+
+function submitAnswer(ans) {
+  if (myAnswer) return;
+  myAnswer = ans;
+  socket.emit('submit_answer', { answer: ans });
+  document.getElementById('btn-o').classList.toggle('selected', ans==='O');
+  document.getElementById('btn-x').classList.toggle('selected', ans==='X');
+  document.getElementById('btn-o').classList.toggle('dimmed', ans!=='O');
+  document.getElementById('btn-x').classList.toggle('dimmed', ans!=='X');
+  document.getElementById('status-msg').textContent = '✓ 답변 완료! 다음 문제를 기다리는 중...';
+  document.getElementById('status-msg').className = 'status-msg done';
+}
+
+function setTimer(remaining, total) {
+  timerTotal = total || timerTotal;
+  const num = document.getElementById('timer-num');
+  const fill = document.getElementById('timer-fill');
+  num.textContent = remaining;
+  fill.style.width = (remaining / timerTotal * 100) + '%';
+  if (remaining <= 5) { num.className='timer-num red'; fill.style.background='var(--o)'; }
+  else if (remaining <= 10) { num.className='timer-num yellow'; fill.style.background='var(--yellow)'; }
+  else { num.className='timer-num green'; fill.style.background='var(--green)'; }
+}
+
+function startQuestion({ text, index, total, timerDuration }) {
+  myAnswer = null;
+  timerTotal = timerDuration || 30;
+  document.getElementById('q-progress').textContent = `${index+1} / ${total}`;
+  document.getElementById('q-text').textContent = text;
+  document.getElementById('btn-o').className = 'ox-btn o';
+  document.getElementById('btn-x').className = 'ox-btn x';
+  document.getElementById('btn-o').disabled = false;
+  document.getElementById('btn-x').disabled = false;
+  document.getElementById('status-msg').textContent = '';
+  document.getElementById('status-msg').className = 'status-msg';
+  setTimer(timerTotal, timerTotal);
+  show('s-quiz');
+}
+
+// 소켓 이벤트
+socket.on('joined', ({ phase, currentQuestion, timerRemaining, timerDuration, leaderboard }) => {
+  if (phase === 'waiting') show('s-wait');
+  else if (phase === 'active' && currentQuestion) { startQuestion({ ...currentQuestion, timerDuration }); if(timerRemaining) setTimer(timerRemaining, timerDuration); }
+  else if (phase === 'finished') { showFinish(leaderboard); }
+  else show('s-wait');
+});
+
+socket.on('question_start', q => startQuestion(q));
+
+socket.on('timer_tick', ({ remaining, total }) => {
+  if (document.getElementById('s-quiz').classList.contains('active')) setTimer(remaining, total);
+});
+
+socket.on('timer_end', () => {
+  document.getElementById('btn-o').disabled = true;
+  document.getElementById('btn-x').disabled = true;
+  if (!myAnswer) {
+    document.getElementById('status-msg').textContent = '⏱ 시간 종료!';
+    document.getElementById('status-msg').className = 'status-msg';
+  }
+  setTimer(0, timerTotal);
+});
+
+socket.on('intermission', ({ countdown }) => {
+  document.getElementById('inter-num').textContent = countdown;
+  show('s-inter');
+});
+
+socket.on('quiz_finished', ({ leaderboard }) => showFinish(leaderboard));
+
+socket.on('answer_reveal', ({ questionText, correctAnswer, oCount, xCount }) => {
+  document.getElementById('rev-q').textContent = questionText;
+  document.getElementById('rev-ans').textContent = correctAnswer === 'O' ? '○ 맞다' : '✕ 아니다';
+  document.getElementById('rev-ans').className = 'result-answer ' + correctAnswer;
+  const tot = oCount + xCount || 1;
+  document.getElementById('rev-bar-o').style.width = Math.round(oCount/tot*100) + '%';
+  document.getElementById('rev-bar-x').style.width = Math.round(xCount/tot*100) + '%';
+  document.getElementById('rev-cnt-o').textContent = oCount;
+  document.getElementById('rev-cnt-x').textContent = xCount;
+  show('s-review');
+});
+
+function showFinish(leaderboard) {
+  const ranks = ['🥇','🥈','🥉'];
+  document.getElementById('lb-list').innerHTML = (leaderboard||[]).map((p,i) => `
+    <div class="lb-row">
+      <div class="lb-rank">${ranks[i]||i+1}</div>
+      <div class="lb-name">${p.name}</div>
+      <div class="lb-score">${p.score}점</div>
+    </div>`).join('') || '<div style="color:var(--sub);text-align:center;padding:20px">참여자 없음</div>';
+  show('s-finish');
+}
+
+socket.on('full_reset', () => { myAnswer=null; myName=''; document.getElementById('name-input').value=''; show('s-join'); });
+</script>
+</body>
+</html>
