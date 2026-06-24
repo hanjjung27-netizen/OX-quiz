@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OX 퀴즈 관리자</title>
+<script src="/socket.io/socket.io.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --o: #FF4B4B;
+    --x: #3B82F6;
+    --bg: #0D0D10;
+    --panel: #16161E;
+    --border: #2A2A38;
+    --text: #EEEEF5;
+    --sub: #7777AA;
+    --green: #22C55E;
+    --yellow: #F59E0B;
+  }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+    min-height: 100vh;
+    padding: 0;
+  }
+
+  /* ── 헤더 ── */
+  header {
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .header-left { display: flex; align-items: center; gap: 16px; }
+  .header-logo { font-size: 26px; font-weight: 900; }
+  .header-logo span:first-child { color: var(--o); }
+  .header-logo span:last-child { color: var(--x); }
+  .header-title { color: var(--sub); font-size: 13px; }
+  .participant-badge {
+    background: var(--border);
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-size: 14px;
+    font-weight: 700;
+  }
+  .participant-badge span { color: var(--green); }
+
+  /* ── 레이아웃 ── */
+  .layout {
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    grid-template-rows: auto 1fr;
+    gap: 0;
+    height: calc(100vh - 57px);
+  }
+  .sidebar {
+    grid-row: 1 / -1;
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .main-top {
+    border-bottom: 1px solid var(--border);
+    padding: 20px 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .main-bottom {
+    padding: 20px 28px;
+    overflow-y: auto;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    align-content: start;
+  }
+
+  /* ── 패널 공통 ── */
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 18px;
+  }
+  .panel-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--sub);
+    margin-bottom: 14px;
+  }
+
+  /* ── 사전 문제 등록 ── */
+  .q-list { display: flex; flex-direction: column; gap: 8px; max-height: 220px; overflow-y: auto; }
+  .q-item {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    transition: border-color .15s, background .15s;
+  }
+  .q-item:hover { border-color: var(--o); background: #1A0A0A; }
+  .q-item.active { border-color: var(--green); background: #0A1A0A; }
+  .q-num { color: var(--sub); font-size: 12px; min-width: 22px; }
+  .q-txt { flex: 1; font-size: 14px; line-height: 1.4; }
+  .q-ans-badge {
+    font-size: 12px; font-weight: 900; padding: 2px 8px;
+    border-radius: 6px; flex-shrink: 0;
+  }
+  .q-ans-badge.O { background: #3A1010; color: var(--o); }
+  .q-ans-badge.X { background: #10103A; color: var(--x); }
+  .q-del { background: none; border: none; color: #555; cursor: pointer; font-size: 16px; padding: 0 4px; }
+  .q-del:hover { color: var(--o); }
+
+  textarea {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px;
+    color: var(--text);
+    font-size: 14px;
+    resize: vertical;
+    min-height: 70px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color .15s;
+  }
+  textarea:focus { border-color: var(--o); }
+  input[type="text"] {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    color: var(--text);
+    font-size: 14px;
+    outline: none;
+    transition: border-color .15s;
+    font-family: inherit;
+  }
+  input[type="text"]:focus { border-color: var(--o); }
+
+  .ans-toggle {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin: 8px 0;
+  }
+  .ans-btn {
+    padding: 10px;
+    border-radius: 10px;
+    border: 2px solid var(--border);
+    background: var(--bg);
+    color: var(--text);
+    font-size: 20px;
+    font-weight: 900;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .ans-btn.o:hover, .ans-btn.o.selected { border-color: var(--o); color: var(--o); background: #2A0A0A; }
+  .ans-btn.x:hover, .ans-btn.x.selected { border-color: var(--x); color: var(--x); background: #0A0A2A; }
+
+  /* ── 버튼 ── */
+  .btn {
+    padding: 11px 18px;
+    border-radius: 10px;
+    border: none;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity .15s, transform .1s;
+    font-family: inherit;
+  }
+  .btn:active { transform: scale(.97); }
+  .btn-primary { background: var(--o); color: #fff; }
+  .btn-blue { background: var(--x); color: #fff; }
+  .btn-green { background: var(--green); color: #000; }
+  .btn-gray { background: var(--border); color: var(--text); }
+  .btn-danger { background: #3A0A0A; color: var(--o); border: 1px solid var(--o); }
+  .btn-full { width: 100%; }
+  .btn:disabled { opacity: .4; cursor: not-allowed; }
+
+  .btn-row { display: flex; gap: 8px; }
+
+  /* ── 현재 문제 / 제어 ── */
+  .current-q-text {
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1.5;
+    word-break: keep-all;
+    padding: 16px 20px;
+    background: var(--bg);
+    border-radius: 12px;
+    border-left: 4px solid var(--o);
+    min-height: 60px;
+  }
+  .phase-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .phase-badge.waiting { background: #222; color: var(--sub); }
+  .phase-badge.active { background: #1A3A1A; color: var(--green); }
+  .phase-badge.reveal { background: #1A1A3A; color: var(--x); }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+  .phase-badge.active .dot { animation: pulse 1s infinite; }
+  @keyframes pulse { 50% { opacity: .3; } }
+
+  /* ── 실시간 집계 그래프 ── */
+  .stats-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .stat-box {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px;
+    text-align: center;
+  }
+  .stat-num { font-size: 26px; font-weight: 900; }
+  .stat-lbl { color: var(--sub); font-size: 11px; margin-top: 2px; }
+  .stat-num.o { color: var(--o); }
+  .stat-num.x { color: var(--x); }
+
+  .graph-bar-wrap { display: flex; flex-direction: column; gap: 12px; }
+  .graph-row { display: flex; align-items: center; gap: 12px; }
+  .graph-label { font-size: 20px; font-weight: 900; width: 28px; text-align: center; }
+  .graph-label.o { color: var(--o); }
+  .graph-label.x { color: var(--x); }
+  .graph-track {
+    flex: 1;
+    height: 36px;
+    background: var(--bg);
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+  }
+  .graph-fill {
+    height: 100%;
+    border-radius: 8px;
+    transition: width .6s cubic-bezier(.4,0,.2,1);
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 10px;
+    font-size: 13px;
+    font-weight: 700;
+    color: rgba(255,255,255,.8);
+  }
+  .graph-fill.o { background: linear-gradient(90deg, #AA2222, var(--o)); }
+  .graph-fill.x { background: linear-gradient(90deg, #2233AA, var(--x)); }
+  .graph-pct { font-size: 16px; font-weight: 900; width: 48px; text-align: right; }
+
+  /* ── 순위표 ── */
+  .leaderboard { display: flex; flex-direction: column; gap: 6px; }
+  .lb-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    background: var(--bg);
+    border-radius: 10px;
+    border: 1px solid var(--border);
+  }
+  .lb-rank { font-size: 16px; font-weight: 900; width: 28px; text-align: center; }
+  .lb-rank.gold { color: #F59E0B; }
+  .lb-rank.silver { color: #9CA3AF; }
+  .lb-rank.bronze { color: #CD7C2F; }
+  .lb-name { flex: 1; font-size: 15px; font-weight: 600; }
+  .lb-score { font-size: 16px; font-weight: 900; color: var(--green); }
+  .lb-score-label { font-size: 11px; color: var(--sub); }
+
+  /* ── 회차 히스토리 ── */
+  .history-list { display: flex; flex-direction: column; gap: 8px; }
+  .history-item {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+  }
+  .history-q { font-size: 13px; color: var(--sub); margin-bottom: 6px; }
+  .history-stats { display: flex; gap: 12px; align-items: center; }
+  .h-badge { font-size: 13px; font-weight: 700; }
+  .h-badge.O { color: var(--o); }
+  .h-badge.X { color: var(--x); }
+  .h-correct { font-size: 12px; color: var(--green); margin-left: auto; }
+
+  /* ── 즉석 문제 ── */
+  .instant-section { display: flex; flex-direction: column; gap: 10px; }
+
+  /* ── 정답 공개 버튼 ── */
+  .reveal-buttons {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .reveal-btn-o, .reveal-btn-x {
+    padding: 18px;
+    border-radius: 14px;
+    border: 2px solid transparent;
+    font-size: 28px;
+    font-weight: 900;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .reveal-btn-o { background: linear-gradient(135deg, var(--o), #FF7070); color: #fff; }
+  .reveal-btn-x { background: linear-gradient(135deg, var(--x), #60A5FA); color: #fff; }
+  .reveal-btn-o:hover { transform: scale(1.03); }
+  .reveal-btn-x:hover { transform: scale(1.03); }
+  .reveal-btn-o:disabled, .reveal-btn-x:disabled { opacity: .3; cursor: not-allowed; transform: none; }
+
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <div class="header-logo"><span>O</span><span>X</span></div>
+    <div class="header-title">관리자 패널</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px;">
+    <div class="participant-badge">참여자 <span id="participant-count">0</span>명</div>
+    <span id="phase-badge" class="phase-badge waiting"><span class="dot"></span>대기중</span>
+  </div>
+</header>
+
+<div class="layout">
+  <!-- ── 사이드바: 문제 관리 ── -->
+  <div class="sidebar">
+
+    <!-- 사전 문제 목록 -->
+    <div class="panel">
+      <div class="panel-title">📋 사전 문제 목록</div>
+      <div class="q-list" id="q-list">
+        <div style="color:var(--sub);font-size:13px;text-align:center;padding:20px 0">
+          아래에서 문제를 추가하세요
+        </div>
+      </div>
+      <div style="margin-top:14px;display:flex;flex-direction:column;gap:8px;">
+        <textarea id="new-q-text" placeholder="문제 내용 입력..." rows="2"></textarea>
+        <div class="ans-toggle">
+          <button class="ans-btn o selected" id="ans-o" onclick="selectAns('O')">○</button>
+          <button class="ans-btn x" id="ans-x" onclick="selectAns('X')">✕</button>
+        </div>
+        <button class="btn btn-primary btn-full" onclick="addQuestion()">+ 문제 추가</button>
+        <button class="btn btn-green btn-full" onclick="saveQuestions()">✓ 서버에 저장</button>
+      </div>
+    </div>
+
+    <!-- 즉석 문제 -->
+    <div class="panel">
+      <div class="panel-title">⚡ 즉석 문제</div>
+      <div class="instant-section">
+        <textarea id="instant-text" placeholder="즉석 문제 입력..." rows="2"></textarea>
+        <div class="ans-toggle">
+          <button class="ans-btn o selected" id="instant-ans-o" onclick="selectInstantAns('O')">○</button>
+          <button class="ans-btn x" id="instant-ans-x" onclick="selectInstantAns('X')">✕</button>
+        </div>
+        <button class="btn btn-primary btn-full" id="instant-btn" onclick="startInstant()">
+          즉석 문제 시작
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── 메인 상단: 현재 문제 + 제어 ── -->
+  <div class="main-top">
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+      <div class="current-q-text" id="current-q-text" style="flex:1;min-width:200px">
+        대기 중 — 사이드바에서 문제를 선택하거나 즉석 문제를 시작하세요.
+      </div>
+    </div>
+    <div class="btn-row" style="flex-wrap:wrap;">
+      <div class="reveal-buttons" style="flex:1;min-width:260px;">
+        <button class="reveal-btn-o" id="reveal-o" onclick="revealAnswer('O')" disabled>정답: ○</button>
+        <button class="reveal-btn-x" id="reveal-x" onclick="revealAnswer('X')" disabled>정답: ✕</button>
+      </div>
+      <div class="btn-row" style="flex-shrink:0;">
+        <button class="btn btn-gray" id="reset-btn" onclick="resetRound()" disabled>다음 문제</button>
+        <button class="btn btn-danger" onclick="confirmReset()">전체 초기화</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 메인 하단: 그래프 + 순위 + 히스토리 ── -->
+  <div class="main-bottom">
+
+    <!-- 실시간 집계 -->
+    <div class="panel">
+      <div class="panel-title">📊 실시간 집계</div>
+      <div class="stats-row">
+        <div class="stat-box">
+          <div class="stat-num" id="stat-answered">0</div>
+          <div class="stat-lbl">응답</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-num o" id="stat-o">0</div>
+          <div class="stat-lbl">O 선택</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-num x" id="stat-x">0</div>
+          <div class="stat-lbl">X 선택</div>
+        </div>
+      </div>
+      <div class="graph-bar-wrap">
+        <div class="graph-row">
+          <div class="graph-label o">O</div>
+          <div class="graph-track">
+            <div class="graph-fill o" id="graph-o" style="width:0%">
+              <span id="graph-o-pct-in"></span>
+            </div>
+          </div>
+          <div class="graph-pct" id="graph-o-pct">0%</div>
+        </div>
+        <div class="graph-row">
+          <div class="graph-label x">✕</div>
+          <div class="graph-track">
+            <div class="graph-fill x" id="graph-x" style="width:0%">
+              <span id="graph-x-pct-in"></span>
+            </div>
+          </div>
+          <div class="graph-pct" id="graph-x-pct">0%</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 순위표 -->
+    <div class="panel">
+      <div class="panel-title">🏆 실시간 순위</div>
+      <div class="leaderboard" id="leaderboard">
+        <div style="color:var(--sub);font-size:13px;text-align:center;padding:20px 0">
+          퀴즈 시작 후 순위가 표시됩니다
+        </div>
+      </div>
+    </div>
+
+    <!-- 회차 기록 -->
+    <div class="panel" style="grid-column:1/-1;">
+      <div class="panel-title">📝 회차 기록</div>
+      <div class="history-list" id="history-list">
+        <div style="color:var(--sub);font-size:13px;text-align:center;padding:12px 0">
+          아직 완료된 문제가 없습니다
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const socket = io();
+socket.emit('admin_join');
+
+let localQuestions = [];
+let selectedAns = 'O';
+let instantAns = 'O';
+let currentPhase = 'waiting';
+
+// ── 문제 관리 ──
+function selectAns(a) {
+  selectedAns = a;
+  document.getElementById('ans-o').classList.toggle('selected', a === 'O');
+  document.getElementById('ans-x').classList.toggle('selected', a === 'X');
+}
+function selectInstantAns(a) {
+  instantAns = a;
+  document.getElementById('instant-ans-o').classList.toggle('selected', a === 'O');
+  document.getElementById('instant-ans-x').classList.toggle('selected', a === 'X');
+}
+
+function addQuestion() {
+  const text = document.getElementById('new-q-text').value.trim();
+  if (!text) return;
+  localQuestions.push({ text, answer: selectedAns });
+  document.getElementById('new-q-text').value = '';
+  renderQList();
+}
+
+function renderQList() {
+  const el = document.getElementById('q-list');
+  if (localQuestions.length === 0) {
+    el.innerHTML = '<div style="color:var(--sub);font-size:13px;text-align:center;padding:20px 0">아래에서 문제를 추가하세요</div>';
+    return;
+  }
+  el.innerHTML = localQuestions.map((q, i) => `
+    <div class="q-item" id="qitem-${i}" onclick="startSavedQuestion(${i})">
+      <span class="q-num">${i+1}</span>
+      <span class="q-txt">${q.text}</span>
+      <span class="q-ans-badge ${q.answer}">${q.answer === 'O' ? '○' : '✕'}</span>
+      <button class="q-del" onclick="delQuestion(event,${i})">✕</button>
+    </div>
+  `).join('');
+}
+
+function delQuestion(e, i) {
+  e.stopPropagation();
+  localQuestions.splice(i, 1);
+  renderQList();
+}
+
+function saveQuestions() {
+  socket.emit('set_questions', { questions: localQuestions });
+  alert('✓ 문제 목록이 서버에 저장되었습니다!');
+}
+
+function startSavedQuestion(i) {
+  if (currentPhase === 'active') {
+    if (!confirm('진행 중인 문제가 있습니다. 새 문제로 넘어갈까요?')) return;
+  }
+  socket.emit('start_question', { index: i });
+}
+
+function startInstant() {
+  const text = document.getElementById('instant-text').value.trim();
+  if (!text) { document.getElementById('instant-text').focus(); return; }
+  if (currentPhase === 'active') {
+    if (!confirm('진행 중인 문제가 있습니다. 새 문제로 넘어갈까요?')) return;
+  }
+  socket.emit('start_question', { customText: text, customAnswer: instantAns });
+  document.getElementById('instant-text').value = '';
+}
+
+function revealAnswer(ans) {
+  socket.emit('reveal_answer', { answer: ans });
+}
+
+function resetRound() {
+  socket.emit('reset_round');
+}
+
+function confirmReset() {
+  if (confirm('⚠️ 전체 초기화하면 참여자, 점수, 기록이 모두 삭제됩니다. 계속할까요?')) {
+    socket.emit('full_reset');
+  }
+}
+
+// ── UI 업데이트 ──
+socket.on('admin_update', (data) => {
+  currentPhase = data.phase;
+
+  // 참여자 수
+  document.getElementById('participant-count').textContent = data.participantCount;
+
+  // 페이즈 뱃지
+  const pb = document.getElementById('phase-badge');
+  const phases = { waiting: ['대기중','waiting'], active: ['진행중','active'], reveal: ['정답공개','reveal'] };
+  const [txt, cls] = phases[data.phase] || phases.waiting;
+  pb.className = `phase-badge ${cls}`;
+  pb.innerHTML = `<span class="dot"></span>${txt}`;
+
+  // 현재 문제
+  if (data.currentQuestion) {
+    document.getElementById('current-q-text').textContent = data.currentQuestion.text;
+  } else {
+    document.getElementById('current-q-text').textContent = '대기 중 — 사이드바에서 문제를 선택하거나 즉석 문제를 시작하세요.';
+  }
+
+  // 버튼 활성화
+  const isActive = data.phase === 'active';
+  const isReveal = data.phase === 'reveal';
+  document.getElementById('reveal-o').disabled = !isActive;
+  document.getElementById('reveal-x').disabled = !isActive;
+  document.getElementById('reset-btn').disabled = !isReveal;
+  document.getElementById('instant-btn').disabled = false;
+
+  // 사전 문제 활성화 표시
+  document.querySelectorAll('.q-item').forEach((el, i) => {
+    el.classList.toggle('active', i === data.currentIndex && data.phase !== 'waiting');
+  });
+
+  // 통계 그래프
+  const { oCount, xCount, answered } = data.stats;
+  document.getElementById('stat-answered').textContent = answered;
+  document.getElementById('stat-o').textContent = oCount;
+  document.getElementById('stat-x').textContent = xCount;
+  const total = oCount + xCount || 1;
+  const oPct = Math.round(oCount / total * 100);
+  const xPct = Math.round(xCount / total * 100);
+  document.getElementById('graph-o').style.width = oPct + '%';
+  document.getElementById('graph-x').style.width = xPct + '%';
+  document.getElementById('graph-o-pct').textContent = oPct + '%';
+  document.getElementById('graph-x-pct').textContent = xPct + '%';
+  document.getElementById('graph-o-pct-in').textContent = oCount > 0 ? oCount + '명' : '';
+  document.getElementById('graph-x-pct-in').textContent = xCount > 0 ? xCount + '명' : '';
+
+  // 순위표
+  const lb = document.getElementById('leaderboard');
+  if (!data.leaderboard || data.leaderboard.length === 0) {
+    lb.innerHTML = '<div style="color:var(--sub);font-size:13px;text-align:center;padding:20px 0">퀴즈 시작 후 순위가 표시됩니다</div>';
+  } else {
+    const rankEmoji = ['🥇','🥈','🥉'];
+    const rankClass = ['gold','silver','bronze'];
+    lb.innerHTML = data.leaderboard.map((p, i) => `
+      <div class="lb-row">
+        <div class="lb-rank ${rankClass[i] || ''}">${rankEmoji[i] || i+1}</div>
+        <div class="lb-name">${p.name}</div>
+        <div class="lb-score">${p.score}<span class="lb-score-label">점</span></div>
+      </div>
+    `).join('');
+  }
+
+  // 회차 기록
+  const hl = document.getElementById('history-list');
+  if (!data.roundHistory || data.roundHistory.length === 0) {
+    hl.innerHTML = '<div style="color:var(--sub);font-size:13px;text-align:center;padding:12px 0">아직 완료된 문제가 없습니다</div>';
+  } else {
+    hl.innerHTML = [...data.roundHistory].reverse().map((h, i) => `
+      <div class="history-item">
+        <div class="history-q">${data.roundHistory.length - i}회차 · ${h.question}</div>
+        <div class="history-stats">
+          <span class="h-badge O">○ ${h.oCount}명</span>
+          <span class="h-badge X">✕ ${h.xCount}명</span>
+          <span style="color:var(--sub);font-size:12px">정답: <strong style="color:var(--text)">${h.answer === 'O' ? '○' : '✕'}</strong></span>
+          <span class="h-correct">✓ 정답자 ${h.correctCount}명</span>
+        </div>
+      </div>
+    `).join('');
+  }
+});
+
+socket.on('full_reset', () => {
+  localQuestions = [];
+  renderQList();
+});
+</script>
+</body>
+</html>

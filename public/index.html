@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>OX 퀴즈 참여</title>
+<script src="/socket.io/socket.io.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  :root {
+    --o: #FF4B4B;
+    --x: #3B82F6;
+    --bg: #0F0F13;
+    --surface: #1A1A22;
+    --text: #F0F0F5;
+    --sub: #888899;
+    --correct: #22C55E;
+    --wrong: #555566;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 20px;
+    overflow: hidden;
+  }
+
+  /* ── 입장 화면 ── */
+  #join-screen {
+    width: 100%;
+    max-width: 360px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+  }
+  .logo {
+    font-size: 48px;
+    letter-spacing: -2px;
+    font-weight: 900;
+  }
+  .logo span:first-child { color: var(--o); }
+  .logo span:last-child { color: var(--x); }
+  .logo-sub { color: var(--sub); font-size: 13px; letter-spacing: 2px; text-transform: uppercase; }
+  #name-input {
+    width: 100%;
+    background: var(--surface);
+    border: 2px solid #333344;
+    border-radius: 14px;
+    padding: 16px 20px;
+    font-size: 18px;
+    color: var(--text);
+    outline: none;
+    text-align: center;
+    transition: border-color .2s;
+  }
+  #name-input:focus { border-color: var(--o); }
+  #join-btn {
+    width: 100%;
+    padding: 18px;
+    border-radius: 14px;
+    border: none;
+    font-size: 18px;
+    font-weight: 700;
+    cursor: pointer;
+    background: linear-gradient(135deg, var(--o), #FF6B6B);
+    color: #fff;
+    transition: opacity .2s, transform .1s;
+  }
+  #join-btn:active { transform: scale(.97); opacity: .9; }
+
+  /* ── 대기 화면 ── */
+  #waiting-screen {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+    text-align: center;
+  }
+  .wait-name { font-size: 22px; font-weight: 700; }
+  .wait-name span { color: var(--o); }
+  .wait-msg { color: var(--sub); font-size: 15px; line-height: 1.6; }
+  .pulse-dot {
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    background: var(--o);
+    animation: pulse 1.4s infinite;
+    margin: 0 auto;
+  }
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.5); opacity: .5; }
+  }
+
+  /* ── 퀴즈 화면 ── */
+  #quiz-screen {
+    display: none;
+    width: 100%;
+    max-width: 440px;
+    flex-direction: column;
+    align-items: center;
+    gap: 28px;
+  }
+  .q-counter { color: var(--sub); font-size: 13px; letter-spacing: 1px; }
+  .q-text {
+    font-size: clamp(18px, 4.5vw, 24px);
+    font-weight: 700;
+    text-align: center;
+    line-height: 1.5;
+    word-break: keep-all;
+    padding: 28px 24px;
+    background: var(--surface);
+    border-radius: 20px;
+    width: 100%;
+  }
+  .ox-buttons {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    width: 100%;
+  }
+  .ox-btn {
+    aspect-ratio: 1;
+    border-radius: 24px;
+    border: none;
+    font-size: clamp(56px, 14vw, 80px);
+    font-weight: 900;
+    cursor: pointer;
+    transition: transform .12s, opacity .2s, box-shadow .2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .ox-btn:active { transform: scale(.93); }
+  .ox-btn.o-btn { background: linear-gradient(135deg, #FF4B4B, #FF7070); color: #fff; }
+  .ox-btn.x-btn { background: linear-gradient(135deg, #3B82F6, #60A5FA); color: #fff; }
+  .ox-btn.selected { box-shadow: 0 0 0 5px #fff; transform: scale(.97); }
+  .ox-btn.dimmed { opacity: .3; }
+
+  .answered-msg {
+    color: var(--sub);
+    font-size: 15px;
+    text-align: center;
+    animation: fadeIn .3s;
+  }
+
+  /* ── 결과 화면 ── */
+  #result-screen {
+    display: none;
+    width: 100%;
+    max-width: 440px;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+  }
+  .result-verdict {
+    font-size: 52px;
+    font-weight: 900;
+    animation: popIn .4s cubic-bezier(.34,1.56,.64,1);
+  }
+  .result-verdict.correct { color: var(--correct); }
+  .result-verdict.wrong { color: #FF4B4B; }
+  .result-label { font-size: 20px; font-weight: 700; }
+  .result-label.correct { color: var(--correct); }
+  .result-label.wrong { color: var(--sub); }
+
+  .result-bar-wrap {
+    width: 100%;
+    background: var(--surface);
+    border-radius: 20px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .bar-row { display: flex; align-items: center; gap: 12px; }
+  .bar-label { font-size: 22px; font-weight: 900; width: 32px; text-align: center; }
+  .bar-label.o { color: var(--o); }
+  .bar-label.x { color: var(--x); }
+  .bar-track { flex: 1; height: 28px; background: #2A2A35; border-radius: 8px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 8px; transition: width 1s cubic-bezier(.4,0,.2,1); }
+  .bar-fill.o { background: var(--o); }
+  .bar-fill.x { background: var(--x); }
+  .bar-count { font-size: 16px; font-weight: 700; width: 36px; text-align: right; }
+  .correct-answer { color: var(--sub); font-size: 14px; }
+  .correct-answer strong { color: var(--text); }
+
+  @keyframes popIn {
+    0% { transform: scale(.4); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+</style>
+</head>
+<body>
+
+<!-- 입장 화면 -->
+<div id="join-screen">
+  <div>
+    <div class="logo"><span>O</span><span>X</span></div>
+    <div class="logo-sub">실시간 퀴즈</div>
+  </div>
+  <input id="name-input" type="text" placeholder="이름 입력" maxlength="10" autocomplete="off">
+  <button id="join-btn" onclick="joinQuiz()">참여하기</button>
+</div>
+
+<!-- 대기 화면 -->
+<div id="waiting-screen">
+  <div class="pulse-dot"></div>
+  <div class="wait-name">어서오세요, <span id="display-name"></span>님!</div>
+  <div class="wait-msg">진행자가 문제를 출제하면<br>여기에 바로 나타납니다.</div>
+</div>
+
+<!-- 퀴즈 화면 -->
+<div id="quiz-screen">
+  <div class="q-counter" id="q-counter"></div>
+  <div class="q-text" id="q-text"></div>
+  <div class="ox-buttons">
+    <button class="ox-btn o-btn" id="btn-o" onclick="submitAnswer('O')">○</button>
+    <button class="ox-btn x-btn" id="btn-x" onclick="submitAnswer('X')">✕</button>
+  </div>
+  <div class="answered-msg" id="answered-msg" style="display:none">✓ 답변 완료! 결과를 기다리는 중...</div>
+</div>
+
+<!-- 결과 화면 -->
+<div id="result-screen">
+  <div class="result-verdict" id="verdict"></div>
+  <div class="result-label" id="verdict-label"></div>
+  <div class="result-bar-wrap">
+    <div class="bar-row">
+      <div class="bar-label o">O</div>
+      <div class="bar-track"><div class="bar-fill o" id="bar-o" style="width:0%"></div></div>
+      <div class="bar-count" id="count-o">0</div>
+    </div>
+    <div class="bar-row">
+      <div class="bar-label x">✕</div>
+      <div class="bar-track"><div class="bar-fill x" id="bar-x" style="width:0%"></div></div>
+      <div class="bar-count" id="count-x">0</div>
+    </div>
+    <div class="correct-answer">정답: <strong id="correct-ans"></strong></div>
+  </div>
+</div>
+
+<script>
+  const socket = io();
+  let myName = '';
+  let myAnswer = null;
+
+  function show(id) {
+    ['join-screen','waiting-screen','quiz-screen','result-screen'].forEach(s => {
+      document.getElementById(s).style.display = (s === id) ? 'flex' : 'none';
+    });
+  }
+
+  function joinQuiz() {
+    const name = document.getElementById('name-input').value.trim();
+    if (!name) { document.getElementById('name-input').focus(); return; }
+    myName = name;
+    socket.emit('join', { name });
+    document.getElementById('display-name').textContent = name;
+  }
+
+  document.getElementById('name-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') joinQuiz();
+  });
+
+  function submitAnswer(ans) {
+    if (myAnswer) return;
+    myAnswer = ans;
+    socket.emit('submit_answer', { answer: ans });
+    document.getElementById('btn-o').classList.toggle('selected', ans === 'O');
+    document.getElementById('btn-x').classList.toggle('selected', ans === 'X');
+    document.getElementById('btn-o').classList.toggle('dimmed', ans !== 'O');
+    document.getElementById('btn-x').classList.toggle('dimmed', ans !== 'X');
+    document.getElementById('answered-msg').style.display = 'block';
+  }
+
+  // 소켓 이벤트
+  socket.on('joined', ({ phase, currentQuestion, myAnswer: savedAns, answerRevealed, correctAnswer }) => {
+    if (phase === 'waiting') { show('waiting-screen'); }
+    else if (phase === 'active' && currentQuestion) {
+      startQuestion(currentQuestion);
+      if (savedAns) submitAnswer(savedAns);
+    } else if (phase === 'reveal') {
+      show('waiting-screen'); // 결과 중 들어오면 대기
+    }
+  });
+
+  socket.on('question_start', (q) => {
+    myAnswer = null;
+    startQuestion(q);
+  });
+
+  function startQuestion({ text, index, total }) {
+    document.getElementById('q-text').textContent = text;
+    document.getElementById('q-counter').textContent =
+      (index >= 0 && total > 0) ? `${index + 1} / ${total}` : '즉석 문제';
+    document.getElementById('btn-o').className = 'ox-btn o-btn';
+    document.getElementById('btn-x').className = 'ox-btn x-btn';
+    document.getElementById('answered-msg').style.display = 'none';
+    show('quiz-screen');
+  }
+
+  socket.on('answer_reveal', ({ correctAnswer, oCount, xCount, total }) => {
+    const isCorrect = myAnswer === correctAnswer;
+    const noAnswer = !myAnswer;
+
+    document.getElementById('verdict').textContent = noAnswer ? '⏱' : (isCorrect ? '✓' : '✗');
+    document.getElementById('verdict').className = 'result-verdict ' + (noAnswer ? '' : (isCorrect ? 'correct' : 'wrong'));
+    document.getElementById('verdict-label').textContent = noAnswer ? '미응답' : (isCorrect ? '정답!' : '오답');
+    document.getElementById('verdict-label').className = 'result-label ' + (noAnswer ? '' : (isCorrect ? 'correct' : 'wrong'));
+
+    const answered = oCount + xCount;
+    const oPct = answered ? Math.round(oCount / answered * 100) : 0;
+    const xPct = answered ? Math.round(xCount / answered * 100) : 0;
+    document.getElementById('bar-o').style.width = oPct + '%';
+    document.getElementById('bar-x').style.width = xPct + '%';
+    document.getElementById('count-o').textContent = oCount;
+    document.getElementById('count-x').textContent = xCount;
+    document.getElementById('correct-ans').textContent = correctAnswer === 'O' ? 'O (맞다)' : 'X (아니다)';
+    show('result-screen');
+  });
+
+  socket.on('round_reset', () => {
+    myAnswer = null;
+    show('waiting-screen');
+  });
+
+  socket.on('full_reset', () => {
+    myAnswer = null;
+    show('join-screen');
+    document.getElementById('name-input').value = '';
+    myName = '';
+  });
+</script>
+</body>
+</html>
