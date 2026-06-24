@@ -280,6 +280,7 @@ function uploadExcel(input) {
   };
   reader.readAsArrayBuffer(file);
 }
+function selAns(a) {
   selAnsVal = a;
   document.getElementById('ans-o').classList.toggle('sel', a==='O');
   document.getElementById('ans-x').classList.toggle('sel', a==='X');
