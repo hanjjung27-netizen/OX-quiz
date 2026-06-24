@@ -70,11 +70,17 @@
 
   /* 최종 순위 */
   .finished-title { font-size:28px; font-weight:900; text-align:center; }
-  .lb-list { width:100%; display:flex; flex-direction:column; gap:6px; }
-  .lb-row { display:flex; align-items:center; gap:12px; padding:12px 16px; background:var(--surface); border-radius:12px; }
-  .lb-rank { font-size:18px; font-weight:900; width:28px; text-align:center; }
-  .lb-name { flex:1; font-size:16px; font-weight:600; }
-  .lb-score { font-size:16px; font-weight:900; color:var(--green); }
+  .my-rank-badge { background:var(--surface); border-radius:14px; padding:14px 20px; text-align:center; width:100%; }
+  .my-rank-num { font-size:42px; font-weight:900; color:var(--o); line-height:1; }
+  .my-rank-label { color:var(--sub); font-size:13px; margin-top:4px; }
+  .my-rank-score { font-size:16px; font-weight:700; color:var(--green); margin-top:4px; }
+  .lb-list { width:100%; display:flex; flex-direction:column; gap:5px; max-height:50vh; overflow-y:auto; padding-right:4px; }
+  .lb-row { display:flex; align-items:center; gap:12px; padding:11px 14px; background:var(--surface); border-radius:12px; }
+  .lb-row.me { background:#2A1A0A; border:1px solid var(--o); }
+  .lb-rank { font-size:16px; font-weight:900; width:28px; text-align:center; }
+  .lb-name { flex:1; font-size:15px; font-weight:600; }
+  .lb-me-tag { font-size:11px; background:var(--o); color:#fff; border-radius:6px; padding:1px 6px; margin-left:6px; font-weight:700; }
+  .lb-score { font-size:15px; font-weight:900; color:var(--green); }
 
   @keyframes popIn { 0%{transform:scale(.3);opacity:0;} 100%{transform:scale(1);opacity:1;} }
 </style>
@@ -84,7 +90,7 @@
 <!-- 입장 -->
 <div class="screen active" id="s-join">
   <div style="text-align:center"><div class="logo"><span>O</span><span>X</span></div><div class="logo-sub">실시간 퀴즈</div></div>
-  <input type="text" id="name-input" placeholder="이름 입력" maxlength="10" autocomplete="off">
+  <input type="text" id="name-input" placeholder="닉네임 혹은 이름을 입력해 주세요" maxlength="12" autocomplete="off">
   <button class="btn-join" onclick="joinQuiz()">참여하기</button>
 </div>
 
@@ -137,6 +143,11 @@
 <!-- 최종 순위 -->
 <div class="screen" id="s-finish">
   <div class="finished-title">🏆 최종 순위</div>
+  <div class="my-rank-badge" id="my-rank-badge" style="display:none">
+    <div class="my-rank-num" id="my-rank-num"></div>
+    <div class="my-rank-label">내 순위</div>
+    <div class="my-rank-score" id="my-rank-score"></div>
+  </div>
   <div class="lb-list" id="lb-list"></div>
 </div>
 
@@ -243,13 +254,33 @@ socket.on('answer_reveal', ({ questionText, correctAnswer, oCount, xCount }) => 
 
 function showFinish(leaderboard) {
   const ranks = ['🥇','🥈','🥉'];
-  document.getElementById('lb-list').innerHTML = (leaderboard||[]).map((p,i) => `
-    <div class="lb-row">
-      <div class="lb-rank">${ranks[i]||i+1}</div>
-      <div class="lb-name">${p.name}</div>
+  const myIdx = leaderboard.findIndex(p => p.name === myName);
+
+  // 내 순위 뱃지
+  if (myIdx >= 0) {
+    document.getElementById('my-rank-badge').style.display = 'block';
+    document.getElementById('my-rank-num').textContent = `${myIdx + 1}위`;
+    document.getElementById('my-rank-score').textContent = `${leaderboard[myIdx].score}점`;
+  }
+
+  document.getElementById('lb-list').innerHTML = leaderboard.map((p, i) => {
+    const isMe = p.name === myName;
+    return `<div class="lb-row${isMe ? ' me' : ''}" id="lb-row-${i}">
+      <div class="lb-rank">${ranks[i] || i+1}</div>
+      <div class="lb-name">${p.name}${isMe ? '<span class="lb-me-tag">나</span>' : ''}</div>
       <div class="lb-score">${p.score}점</div>
-    </div>`).join('') || '<div style="color:var(--sub);text-align:center;padding:20px">참여자 없음</div>';
+    </div>`;
+  }).join('') || '<div style="color:var(--sub);text-align:center;padding:20px">참여자 없음</div>';
+
   show('s-finish');
+
+  // 내 순위로 자동 스크롤
+  if (myIdx >= 0) {
+    setTimeout(() => {
+      const myRow = document.getElementById(`lb-row-${myIdx}`);
+      if (myRow) myRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 400);
+  }
 }
 
 socket.on('full_reset', () => { myAnswer=null; myName=''; document.getElementById('name-input').value=''; show('s-join'); });
