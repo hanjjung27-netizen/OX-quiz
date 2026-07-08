@@ -193,6 +193,10 @@
         <button class="btn btn-full btn-start-quiz" id="start-btn" onclick="startQuiz()" style="flex:2;">▶ 퀴즈 시작</button>
         <button class="btn btn-danger" id="stop-btn" onclick="stopQuiz()" style="flex:1;display:none;">⏹ 중단</button>
       </div>
+      <div id="quiz-controls" style="display:none;margin-top:8px;display:none;gap:8px;">
+        <button class="btn btn-full" id="reveal-current-btn" onclick="revealCurrent()" style="background:var(--o);color:#fff;padding:13px;font-size:14px;font-weight:800;border-radius:10px;display:none;">📢 정답 공개</button>
+        <button class="btn btn-full" id="next-q-btn" onclick="nextQuestion()" style="background:var(--navy);color:#fff;padding:13px;font-size:14px;font-weight:800;border-radius:10px;display:none;">▶ 다음 문제</button>
+      </div>
     </div>
 
     <div class="panel">
@@ -363,6 +367,8 @@ function stopQuiz() {
   if (!confirm('퀴즈를 중단할까요? 지금까지의 점수는 유지됩니다.')) return;
   socket.emit('stop_quiz');
 }
+function revealCurrent() { socket.emit('reveal_current'); }
+function nextQuestion() { socket.emit('next_question'); }
 
 function startQuiz() {
   if (!localQ.length) { alert('문제를 먼저 등록해주세요!'); return; }
@@ -411,15 +417,30 @@ socket.on('admin_update', (data) => {
 
   const sb = document.getElementById('start-btn');
   const stopBtn = document.getElementById('stop-btn');
-  if (data.quizRunning) {
+  const revealBtn = document.getElementById('reveal-current-btn');
+  const nextBtn = document.getElementById('next-q-btn');
+
+  if (data.quizRunning && data.phase === 'active') {
     sb.textContent='진행중...'; sb.disabled=true;
     stopBtn.style.display='block';
-  } else if (data.phase==='finished') {
+    revealBtn.style.display='none';
+    nextBtn.style.display='none';
+  } else if (data.phase === 'intermission') {
+    sb.textContent='진행중...'; sb.disabled=true;
+    stopBtn.style.display='block';
+    const alreadyRevealed = data.revealedAnswers && data.revealedAnswers[data.currentIndex];
+    revealBtn.style.display = alreadyRevealed ? 'none' : 'block';
+    nextBtn.style.display = alreadyRevealed ? 'block' : 'none';
+  } else if (data.phase === 'finished') {
     sb.textContent='▶ 다시 시작'; sb.disabled=false;
     stopBtn.style.display='none';
+    revealBtn.style.display='none';
+    nextBtn.style.display='none';
   } else {
     sb.textContent='▶ 퀴즈 시작'; sb.disabled=false;
     stopBtn.style.display='none';
+    revealBtn.style.display='none';
+    nextBtn.style.display='none';
   }
 
   document.querySelectorAll('[id^="qi-"]').forEach((el,i) => {
