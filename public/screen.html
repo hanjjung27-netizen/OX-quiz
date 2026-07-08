@@ -291,7 +291,7 @@ function setTimer(remaining, total) {
 socket.on('screen_update', (data) => {
   if (data.phase === 'waiting') { show('s-wait'); return; }
   if (data.phase === 'finished') { showFinish(data.leaderboard); return; }
-  if (data.phase === 'intermission' && !data.quizRunning) { showFinish(data.leaderboard); return; }
+  if (data.phase === 'intermission') return; // 집계 화면 유지
   if (data.currentQuestion) {
     document.getElementById('q-text').textContent = data.currentQuestion.text;
     document.getElementById('q-count').textContent = `${data.currentQuestion.index+1} / ${data.currentQuestion.total}`;
