@@ -292,13 +292,12 @@ socket.on('screen_update', (data) => {
   if (data.phase === 'waiting') { show('s-wait'); return; }
   if (data.phase === 'finished') { showFinish(data.leaderboard); return; }
   if (data.phase === 'intermission') return; // 집계 화면 유지
-  if (data.currentQuestion) {
+  if (data.phase === 'active' && data.currentQuestion) {
     document.getElementById('q-text').textContent = data.currentQuestion.text;
     document.getElementById('q-count').textContent = `${data.currentQuestion.index+1} / ${data.currentQuestion.total}`;
     updateGraph(data.stats.oCount, data.stats.xCount);
-    if (data.timerRemaining > 0) setTimer(data.timerRemaining, data.timerDuration);
-    if (document.getElementById('s-reveal').classList.contains('active')) return;
-    show('s-quiz');
+    setTimer(data.timerRemaining || 0, data.timerDuration);
+    if (!document.getElementById('s-reveal').classList.contains('active')) show('s-quiz');
   }
 });
 
@@ -312,6 +311,9 @@ socket.on('question_start', ({ text, index, total, timerDuration }) => {
   document.getElementById('q-count').textContent = `${index+1} / ${total}`;
   updateGraph(0, 0);
   setTimer(timerTotal, timerTotal);
+  // s-all(전체정답) 있으면 제거
+  const existing = document.getElementById('s-all');
+  if (existing) existing.remove();
   show('s-quiz');
 });
 
