@@ -302,6 +302,8 @@ socket.on('timer_end', () => {
     document.getElementById('status-msg').className = 'status-msg';
   }
   setTimer(0, timerTotal);
+  // 정답 공개 대기
+  document.getElementById('status-msg').textContent = '⏳ 잠시 후 정답이 공개됩니다...';
 });
 
 socket.on('intermission', ({ countdown, isLast }) => {
