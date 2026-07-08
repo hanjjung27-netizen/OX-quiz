@@ -115,18 +115,11 @@ function timeUp() {
     xCount: stats.xCount,
     correctCount
   });
-  const isLast = state.currentIndex >= state.questions.length - 1;
   state.phase = 'intermission';
   io.to('participants').emit('timer_end');
   io.to('screen').emit('screen_update', screenState());
   io.to('admin').emit('admin_update', adminState());
-  let countdown = 3;
-  io.emit('intermission', { countdown, isLast });
-  const intv = setInterval(() => {
-    countdown--;
-    if (countdown > 0) { io.emit('intermission', { countdown, isLast }); }
-    else { clearInterval(intv); if (state.quizRunning) startQuestion(state.currentIndex + 1); }
-  }, 1000);
+  // 자동 진행 없음 — 관리자가 정답 공개 후 수동으로 다음 문제 진행
 }
 
 function finishQuiz() {
@@ -238,6 +231,37 @@ io.on('connection', (socket) => {
     io.to('participants').emit('answer_reveal', payload);
     io.to('screen').emit('answer_reveal', payload);
     io.to('admin').emit('admin_update', adminState());
+  });
+
+  // 현재 문제 정답 공개 (타이머 종료 후 관리자 클릭)
+  socket.on('reveal_current', () => {
+    if (state.phase !== 'intermission') return;
+    const h = state.roundHistory.find(r => r.index === state.currentIndex);
+    const q = state.questions[state.currentIndex];
+    if (!h || !q) return;
+    state.revealedAnswers[state.currentIndex] = true;
+    const payload = {
+      questionIndex: state.currentIndex,
+      questionText: q.text,
+      correctAnswer: h.answer,
+      oCount: h.oCount,
+      xCount: h.xCount,
+      correctCount: h.correctCount
+    };
+    io.to('participants').emit('answer_reveal', payload);
+    io.to('screen').emit('answer_reveal', payload);
+    io.to('admin').emit('admin_update', adminState());
+  });
+
+  // 다음 문제로 이동 (관리자 클릭)
+  socket.on('next_question', () => {
+    if (state.phase !== 'intermission') return;
+    const nextIndex = state.currentIndex + 1;
+    if (nextIndex >= state.questions.length) {
+      finishQuiz();
+    } else {
+      startQuestion(nextIndex);
+    }
   });
 
   // 전체 정답 한번에 공개
